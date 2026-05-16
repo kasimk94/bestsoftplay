@@ -1,0 +1,68 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Venue {
+  id                String   @id @default(cuid())
+  name              String
+  slug              String   @unique
+  city              City     @relation(fields: [cityId], references: [id])
+  cityId            String
+  area              Area     @relation(fields: [areaId], references: [id])
+  areaId            String
+  address           String
+  postcode          String
+  lat               Float?
+  lng               Float?
+  phone             String?
+  website           String?
+  googlePlaceId     String?
+  googleRating      Float?
+  googleReviewCount Int?
+  description       String?
+  ageMin            Int?
+  ageMax            Int?
+  priceRange        String?
+  features          String[]
+  openingHours      Json?
+  isVerified        Boolean  @default(false)
+  isFeatured        Boolean  @default(false)
+  isNew             Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model City {
+  id     String  @id @default(cuid())
+  name   String
+  slug   String  @unique
+  colour String
+  emoji  String
+  venues Venue[]
+  areas  Area[]
+}
+
+model Area {
+  id      String  @id @default(cuid())
+  name    String
+  slug    String
+  city    City    @relation(fields: [cityId], references: [id])
+  cityId  String
+  venues  Venue[]
+
+  @@unique([slug, cityId])
+}
+
+model Guide {
+  id              String   @id @default(cuid())
+  title           String
+  slug            String   @unique
+  content         String
+  metaDescription String?
+  publishedAt     DateTime @default(now())
+}
