@@ -53,28 +53,28 @@ const CITY_CARDS = [
 const GUIDE_CARDS = [
   {
     icon: '📍',
-    tintClass: 'bg-purple-100',
+    bg: '#ede9fe',
     title: 'Best Soft Plays in South London',
     slug: 'best-soft-plays-south-london',
     desc: '18 venues reviewed and ranked',
   },
   {
     icon: '🍼',
-    tintClass: 'bg-orange-100',
+    bg: '#ffedd5',
     title: 'Best for Toddlers in London',
     slug: 'best-soft-plays-toddlers-london',
     desc: 'Under 2s welcome – our picks',
   },
   {
-    icon: '📅',
-    tintClass: 'bg-teal-100',
+    icon: '🏙️',
+    bg: '#ccfbf1',
     title: 'Best Soft Plays in Birmingham',
     slug: 'best-soft-plays-birmingham',
     desc: 'Top venues across the city',
   },
   {
     icon: '☕',
-    tintClass: 'bg-amber-100',
+    bg: '#fef3c7',
     title: 'Best Soft Plays in Manchester',
     slug: 'best-soft-plays-manchester',
     desc: 'Rain-proof family fun',
@@ -281,7 +281,10 @@ export default async function HomePage() {
               href={`/guides/${guide.slug}`}
               className="group bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow duration-200"
             >
-              <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl mb-4 ${guide.tintClass}`}>
+              <div
+                className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl mb-4"
+                style={{ backgroundColor: guide.bg }}
+              >
                 {guide.icon}
               </div>
               <h3 className="font-bold text-gray-900 text-base leading-snug group-hover:text-[#7F77DD] transition-colors mb-1.5">
