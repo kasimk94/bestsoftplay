@@ -6,6 +6,7 @@ import SearchBar from '@/components/SearchBar'
 import VenueCard from '@/components/VenueCard'
 import { prisma } from '@/lib/prisma'
 import AnimatedWord from '@/components/AnimatedWord'
+import FloatingEmojis from '@/components/FloatingEmojis'
 
 export const metadata: Metadata = {
   title: 'BestSoftPlay – Find the Best Soft Play Venues in the UK',
@@ -109,8 +110,9 @@ export default async function HomePage() {
       <Navbar />
 
       {/* Hero */}
-      <section className="bg-gradient-to-b from-[#F4F3FB] to-white pt-16 pb-12 px-4">
-        <div className="max-w-4xl mx-auto text-center">
+      <section className="relative bg-gradient-to-b from-[#F4F3FB] to-white pt-16 pb-12 px-4 overflow-hidden">
+        <FloatingEmojis />
+        <div className="relative z-10 max-w-4xl mx-auto text-center">
           <div className="inline-flex items-center gap-2 bg-white border border-[#E9E8F7] text-[#7F77DD] text-sm font-semibold px-4 py-2 rounded-full mb-6 shadow-sm">
             <span>🇬🇧</span>
             <span>UK&apos;s most trusted soft play directory</span>

@@ -22,6 +22,29 @@
   }
 }
 
+@keyframes floatUp {
+  0% {
+    opacity: 0;
+    transform: translateY(0px) translateX(0px);
+  }
+  12% {
+    opacity: 1;
+  }
+  30% {
+    transform: translateY(-120px) translateX(10px);
+  }
+  60% {
+    transform: translateY(-280px) translateX(-8px);
+  }
+  88% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-520px) translateX(4px);
+  }
+}
+
 @layer components {
   .btn-primary {
     @apply bg-[#7F77DD] text-white font-semibold px-6 py-3 rounded-xl hover:bg-[#6A62C8] transition-colors duration-200;
