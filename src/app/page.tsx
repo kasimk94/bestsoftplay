@@ -146,12 +146,12 @@ export default async function HomePage() {
       </section>
 
       {/* Stats bar */}
-      <section className="bg-[#7F77DD] py-6">
-        <div className="max-w-5xl mx-auto px-4 grid grid-cols-2 md:grid-cols-4 gap-6 text-center text-white">
+      <section className="bg-[#F4F3FB] border-y border-[#E9E8F7] py-6">
+        <div className="max-w-5xl mx-auto px-4 grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
           {STATS.map((s) => (
             <div key={s.label}>
-              <div className="text-2xl font-extrabold">{s.value}</div>
-              <div className="text-sm text-white/70 mt-0.5">{s.label}</div>
+              <div className="text-2xl font-extrabold text-[#7F77DD]">{s.value}</div>
+              <div className="text-sm text-gray-500 mt-0.5">{s.label}</div>
             </div>
           ))}
         </div>
