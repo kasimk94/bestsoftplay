@@ -52,29 +52,29 @@ const CITY_CARDS = [
 
 const GUIDE_CARDS = [
   {
-    icon: '🗺️',
-    tint: '#EEEDFE',
+    icon: '📍',
+    tintClass: 'bg-purple-100',
     title: 'Best Soft Plays in South London',
     slug: 'best-soft-plays-south-london',
     desc: '18 venues reviewed and ranked',
   },
   {
-    icon: '👶',
-    tint: '#FAECE7',
+    icon: '🍼',
+    tintClass: 'bg-orange-100',
     title: 'Best for Toddlers in London',
     slug: 'best-soft-plays-toddlers-london',
     desc: 'Under 2s welcome – our picks',
   },
   {
-    icon: '🏙️',
-    tint: '#E1F5EE',
+    icon: '📅',
+    tintClass: 'bg-teal-100',
     title: 'Best Soft Plays in Birmingham',
     slug: 'best-soft-plays-birmingham',
     desc: 'Top venues across the city',
   },
   {
-    icon: '🌧️',
-    tint: '#FAEEDA',
+    icon: '☕',
+    tintClass: 'bg-amber-100',
     title: 'Best Soft Plays in Manchester',
     slug: 'best-soft-plays-manchester',
     desc: 'Rain-proof family fun',
@@ -146,14 +146,16 @@ export default async function HomePage() {
       </section>
 
       {/* Stats bar */}
-      <section className="bg-[#7F77DD] py-6">
-        <div className="max-w-5xl mx-auto px-4 grid grid-cols-2 md:grid-cols-4 gap-6 text-center text-white">
-          {STATS.map((s) => (
-            <div key={s.label}>
-              <div className="text-2xl font-extrabold">{s.value}</div>
-              <div className="text-sm text-white/70 mt-0.5">{s.label}</div>
-            </div>
-          ))}
+      <section className="bg-white border-y border-gray-200 py-6">
+        <div className="max-w-5xl mx-auto px-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-gray-200">
+            {STATS.map((s) => (
+              <div key={s.label} className="text-center px-6">
+                <div className="text-3xl font-extrabold text-[#7F77DD]">{s.value}</div>
+                <div className="text-sm text-gray-500 mt-1">{s.label}</div>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -279,10 +281,7 @@ export default async function HomePage() {
               href={`/guides/${guide.slug}`}
               className="group bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow duration-200"
             >
-              <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center text-xl mb-4"
-                style={{ backgroundColor: guide.tint }}
-              >
+              <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl mb-4 ${guide.tintClass}`}>
                 {guide.icon}
               </div>
               <h3 className="font-bold text-gray-900 text-base leading-snug group-hover:text-[#7F77DD] transition-colors mb-1.5">
