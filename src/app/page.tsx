@@ -146,16 +146,14 @@ export default async function HomePage() {
       </section>
 
       {/* Stats bar */}
-      <section className="bg-white border-y border-gray-200 py-6">
-        <div className="max-w-5xl mx-auto px-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-gray-200">
-            {STATS.map((s) => (
-              <div key={s.label} className="text-center px-6">
-                <div className="text-3xl font-extrabold text-[#7F77DD]">{s.value}</div>
-                <div className="text-sm text-gray-500 mt-1">{s.label}</div>
-              </div>
-            ))}
-          </div>
+      <section className="bg-[#7F77DD] py-6">
+        <div className="max-w-5xl mx-auto px-4 grid grid-cols-2 md:grid-cols-4 gap-6 text-center text-white">
+          {STATS.map((s) => (
+            <div key={s.label}>
+              <div className="text-3xl font-extrabold">{s.value}</div>
+              <div className="text-sm text-white/80 mt-0.5">{s.label}</div>
+            </div>
+          ))}
         </div>
       </section>
 
