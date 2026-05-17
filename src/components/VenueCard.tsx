@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import VenuePhoto from './VenuePhoto'
 
 const CARD_COLORS = [
   { bg: '#7F77DD', emoji: '🎪' },
@@ -28,6 +29,7 @@ interface VenueCardProps {
     address: string
     googleRating?: number | null
     googleReviewCount?: number | null
+    photoReference?: string | null
     features: string[]
     isFeatured?: boolean
     isNew?: boolean
@@ -41,24 +43,35 @@ export default function VenueCard({ venue, index = 0 }: VenueCardProps) {
   const color = CARD_COLORS[index % CARD_COLORS.length]
   const badge = venue.isFeatured ? 'Top pick' : venue.isNew ? 'New' : null
 
-  const href = venue.city && venue.area
-    ? `/${venue.city.slug}/${venue.area.slug}/${venue.slug}`
-    : `#`
+  const href =
+    venue.city && venue.area
+      ? `/${venue.city.slug}/${venue.area.slug}/${venue.slug}`
+      : '#'
 
   return (
     <Link href={href} className="venue-card group block">
-      {/* Coloured image placeholder */}
-      <div
-        className="relative h-44 flex items-center justify-center"
-        style={{ backgroundColor: color.bg }}
-      >
-        {badge && (
-          <span className="absolute top-3 left-3 bg-white text-gray-900 text-xs font-bold px-2.5 py-1 rounded-full shadow-sm">
-            {badge}
-          </span>
-        )}
-        <span className="text-6xl select-none">{color.emoji}</span>
-      </div>
+      {/* Photo or coloured placeholder */}
+      {venue.photoReference ? (
+        <VenuePhoto
+          photoReference={venue.photoReference}
+          name={venue.name}
+          fallbackColor={color.bg}
+          fallbackEmoji={color.emoji}
+          badge={badge}
+        />
+      ) : (
+        <div
+          className="relative h-44 flex items-center justify-center"
+          style={{ backgroundColor: color.bg }}
+        >
+          {badge && (
+            <span className="absolute top-3 left-3 bg-white text-gray-900 text-xs font-bold px-2.5 py-1 rounded-full shadow-sm">
+              {badge}
+            </span>
+          )}
+          <span className="text-6xl select-none">{color.emoji}</span>
+        </div>
+      )}
 
       {/* Content */}
       <div className="p-4">

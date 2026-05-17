@@ -138,7 +138,7 @@ async function getGooglePlaceDetails(name, lat, lng) {
       `?input=${encodeURIComponent(name + ' soft play')}` +
       `&inputtype=textquery` +
       `&locationbias=circle:1000@${lat},${lng}` +
-      `&fields=place_id,name,rating,user_ratings_total,formatted_address,formatted_phone_number,website,opening_hours,geometry` +
+      `&fields=place_id,name,rating,user_ratings_total,formatted_address,formatted_phone_number,website,opening_hours,geometry,photos` +
       `&key=${GOOGLE_PLACES_API_KEY}`
 
     const searchRes = await fetchJson(searchUrl)
@@ -149,7 +149,7 @@ async function getGooglePlaceDetails(name, lat, lng) {
     const detailUrl =
       `https://maps.googleapis.com/maps/api/place/details/json` +
       `?place_id=${candidate.place_id}` +
-      `&fields=place_id,name,rating,user_ratings_total,formatted_address,formatted_phone_number,website,opening_hours,geometry` +
+      `&fields=place_id,name,rating,user_ratings_total,formatted_address,formatted_phone_number,website,opening_hours,geometry,photos` +
       `&key=${GOOGLE_PLACES_API_KEY}`
 
     const detailRes = await fetchJson(detailUrl)
@@ -253,6 +253,7 @@ async function syncCity(citySlug) {
     const googleReviewCount = place?.user_ratings_total ?? null
     const googlePlaceId = place?.place_id ?? null
     const openingHours = place?.opening_hours?.weekday_text ?? null
+    const photoReference = place?.photos?.[0]?.photo_reference ?? null
 
     // Features
     const features = []
@@ -279,6 +280,7 @@ async function syncCity(citySlug) {
 
     if (description) console.log(`    ✅ Description: ${description.slice(0, 60)}...`)
     if (googleRating) console.log(`    ⭐ Rating: ${googleRating} (${googleReviewCount} reviews)`)
+    if (photoReference) console.log(`    📷 Photo reference found`)
 
     // Upsert
     await prisma.venue.upsert({
@@ -294,6 +296,7 @@ async function syncCity(citySlug) {
         googlePlaceId,
         googleRating,
         googleReviewCount,
+        photoReference,
         description,
         features,
         openingHours: openingHours ? { weekdays: openingHours } : undefined,
@@ -312,6 +315,7 @@ async function syncCity(citySlug) {
         googlePlaceId,
         googleRating,
         googleReviewCount,
+        photoReference,
         description,
         features,
         openingHours: openingHours ? { weekdays: openingHours } : undefined,

@@ -24,6 +24,7 @@ model Venue {
   googlePlaceId     String?
   googleRating      Float?
   googleReviewCount Int?
+  photoReference    String?
   description       String?
   ageMin            Int?
   ageMax            Int?
