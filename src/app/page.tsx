@@ -53,28 +53,28 @@ const CITY_CARDS = [
 const GUIDE_CARDS = [
   {
     icon: '🗺️',
-    colour: '#7F77DD',
+    tint: '#EEEDFE',
     title: 'Best Soft Plays in South London',
     slug: 'best-soft-plays-south-london',
     desc: '18 venues reviewed and ranked',
   },
   {
     icon: '👶',
-    colour: '#1D9E75',
+    tint: '#FAECE7',
     title: 'Best for Toddlers in London',
     slug: 'best-soft-plays-toddlers-london',
     desc: 'Under 2s welcome – our picks',
   },
   {
     icon: '🏙️',
-    colour: '#D85A30',
+    tint: '#E1F5EE',
     title: 'Best Soft Plays in Birmingham',
     slug: 'best-soft-plays-birmingham',
     desc: 'Top venues across the city',
   },
   {
     icon: '🌧️',
-    colour: '#F59E0B',
+    tint: '#FAEEDA',
     title: 'Best Soft Plays in Manchester',
     slug: 'best-soft-plays-manchester',
     desc: 'Rain-proof family fun',
@@ -261,7 +261,7 @@ export default async function HomePage() {
       </section>
 
       {/* Parent guides */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-12">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-4">
         <div className="flex items-end justify-between mb-8">
           <div>
             <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight">Parent guides</h2>
@@ -277,11 +277,11 @@ export default async function HomePage() {
             <Link
               key={guide.slug}
               href={`/guides/${guide.slug}`}
-              className="group bg-white rounded-2xl p-6 border border-gray-100 hover:shadow-md transition-shadow duration-200"
+              className="group bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow duration-200"
             >
               <div
-                className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl mb-4"
-                style={{ backgroundColor: guide.colour }}
+                className="w-10 h-10 rounded-xl flex items-center justify-center text-xl mb-4"
+                style={{ backgroundColor: guide.tint }}
               >
                 {guide.icon}
               </div>
