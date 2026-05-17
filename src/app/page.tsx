@@ -146,12 +146,12 @@ export default async function HomePage() {
       </section>
 
       {/* Stats bar */}
-      <section className="bg-[#F4F3FB] border-y border-[#E9E8F7] py-6">
-        <div className="max-w-5xl mx-auto px-4 grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+      <section className="bg-[#7F77DD] py-6">
+        <div className="max-w-5xl mx-auto px-4 grid grid-cols-2 md:grid-cols-4 gap-6 text-center text-white">
           {STATS.map((s) => (
             <div key={s.label}>
-              <div className="text-2xl font-extrabold text-[#7F77DD]">{s.value}</div>
-              <div className="text-sm text-gray-500 mt-0.5">{s.label}</div>
+              <div className="text-2xl font-extrabold">{s.value}</div>
+              <div className="text-sm text-white/70 mt-0.5">{s.label}</div>
             </div>
           ))}
         </div>
@@ -261,7 +261,7 @@ export default async function HomePage() {
       </section>
 
       {/* Parent guides */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-12">
         <div className="flex items-end justify-between mb-8">
           <div>
             <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight">Parent guides</h2>
@@ -281,7 +281,7 @@ export default async function HomePage() {
             >
               <div
                 className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl mb-4"
-                style={{ backgroundColor: `${guide.colour}20` }}
+                style={{ backgroundColor: guide.colour }}
               >
                 {guide.icon}
               </div>
