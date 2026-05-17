@@ -5,6 +5,7 @@ import Footer from '@/components/Footer'
 import SearchBar from '@/components/SearchBar'
 import VenueCard from '@/components/VenueCard'
 import { prisma } from '@/lib/prisma'
+import AnimatedWord from '@/components/AnimatedWord'
 
 export const metadata: Metadata = {
   title: 'BestSoftPlay – Find the Best Soft Play Venues in the UK',
@@ -116,9 +117,9 @@ export default async function HomePage() {
           </div>
 
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-gray-900 tracking-tight leading-tight mb-4">
-            Find the perfect soft play
+            Find the perfect soft play for your
             <br />
-            <span className="text-[#7F77DD]">for your little ones</span>
+            <AnimatedWord />
           </h1>
 
           <p className="text-lg sm:text-xl text-gray-500 mb-10 max-w-2xl mx-auto leading-relaxed">
