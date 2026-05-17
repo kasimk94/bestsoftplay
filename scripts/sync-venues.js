@@ -160,6 +160,31 @@ async function getGooglePlaceDetails(name, lat, lng) {
   }
 }
 
+// ─── Google Places photo URL ───────────────────────────────────────────────
+
+function resolvePhotoUrl(photoReference, maxWidth = 800) {
+  return new Promise((resolve) => {
+    const url =
+      `https://maps.googleapis.com/maps/api/place/photo` +
+      `?maxwidth=${maxWidth}&photo_reference=${encodeURIComponent(photoReference)}&key=${GOOGLE_PLACES_API_KEY}`
+
+    const req = https.get(url, (res) => {
+      // Google redirects to the actual image URL
+      if (res.statusCode === 302 || res.statusCode === 301) {
+        resolve(res.headers.location ?? null)
+      } else if (res.statusCode === 200) {
+        // Some responses return the image directly — build a stable proxy URL instead
+        resolve(null)
+      } else {
+        resolve(null)
+      }
+      res.destroy()
+    })
+    req.on('error', () => resolve(null))
+    req.setTimeout(10000, () => { req.destroy(); resolve(null) })
+  })
+}
+
 // ─── Claude description ────────────────────────────────────────────────────
 
 async function generateDescription(venueName, address, features) {
@@ -254,6 +279,11 @@ async function syncCity(citySlug) {
     const googlePlaceId = place?.place_id ?? null
     const openingHours = place?.opening_hours?.weekday_text ?? null
     const photoReference = place?.photos?.[0]?.photo_reference ?? null
+    let photoUrl = null
+    if (photoReference) {
+      await sleep(100)
+      photoUrl = await resolvePhotoUrl(photoReference)
+    }
 
     // Features
     const features = []
@@ -280,7 +310,8 @@ async function syncCity(citySlug) {
 
     if (description) console.log(`    ✅ Description: ${description.slice(0, 60)}...`)
     if (googleRating) console.log(`    ⭐ Rating: ${googleRating} (${googleReviewCount} reviews)`)
-    if (photoReference) console.log(`    📷 Photo reference found`)
+    if (photoUrl) console.log(`    📷 Photo URL resolved`)
+    else if (photoReference) console.log(`    📷 Photo reference stored (URL unavailable)`)
 
     // Upsert
     await prisma.venue.upsert({
@@ -297,6 +328,7 @@ async function syncCity(citySlug) {
         googleRating,
         googleReviewCount,
         photoReference,
+        photoUrl,
         description,
         features,
         openingHours: openingHours ? { weekdays: openingHours } : undefined,
@@ -316,6 +348,7 @@ async function syncCity(citySlug) {
         googleRating,
         googleReviewCount,
         photoReference,
+        photoUrl,
         description,
         features,
         openingHours: openingHours ? { weekdays: openingHours } : undefined,

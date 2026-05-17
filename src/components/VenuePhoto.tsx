@@ -4,7 +4,8 @@ import Image from 'next/image'
 import { useState } from 'react'
 
 interface VenuePhotoProps {
-  photoReference: string
+  photoReference?: string | null
+  photoUrl?: string | null
   name: string
   fallbackColor: string
   fallbackEmoji: string
@@ -13,6 +14,7 @@ interface VenuePhotoProps {
 
 export default function VenuePhoto({
   photoReference,
+  photoUrl,
   name,
   fallbackColor,
   fallbackEmoji,
@@ -20,7 +22,14 @@ export default function VenuePhoto({
 }: VenuePhotoProps) {
   const [failed, setFailed] = useState(false)
 
-  if (failed) {
+  // Prefer direct URL; fall back to proxy route using the reference
+  const src = photoUrl
+    ? photoUrl
+    : photoReference
+    ? `/api/place-photo?ref=${encodeURIComponent(photoReference)}&w=800`
+    : null
+
+  if (!src || failed) {
     return (
       <div
         className="relative h-44 flex items-center justify-center"
@@ -44,12 +53,13 @@ export default function VenuePhoto({
         </span>
       )}
       <Image
-        src={`/api/place-photo?ref=${encodeURIComponent(photoReference)}&w=800`}
+        src={src}
         alt={name}
         fill
         sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
         className="object-cover"
         onError={() => setFailed(true)}
+        unoptimized={!!photoUrl}
       />
     </div>
   )

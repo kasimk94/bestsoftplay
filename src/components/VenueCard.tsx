@@ -30,6 +30,7 @@ interface VenueCardProps {
     googleRating?: number | null
     googleReviewCount?: number | null
     photoReference?: string | null
+    photoUrl?: string | null
     features: string[]
     isFeatured?: boolean
     isNew?: boolean
@@ -51,9 +52,10 @@ export default function VenueCard({ venue, index = 0 }: VenueCardProps) {
   return (
     <Link href={href} className="venue-card group block">
       {/* Photo or coloured placeholder */}
-      {venue.photoReference ? (
+      {(venue.photoReference || venue.photoUrl) ? (
         <VenuePhoto
           photoReference={venue.photoReference}
+          photoUrl={venue.photoUrl}
           name={venue.name}
           fallbackColor={color.bg}
           fallbackEmoji={color.emoji}
