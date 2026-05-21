@@ -22,12 +22,10 @@ export default function VenuePhoto({
 }: VenuePhotoProps) {
   const [failed, setFailed] = useState(false)
 
-  // Prefer direct URL; fall back to proxy route using the reference
-  const src = photoUrl
-    ? photoUrl
-    : photoReference
+  // Proxy using photoReference never expires; photoUrl (redirect) is a fallback only
+  const src = photoReference
     ? `/api/place-photo?ref=${encodeURIComponent(photoReference)}&w=800`
-    : null
+    : photoUrl || null
 
   if (!src || failed) {
     return (
@@ -59,7 +57,7 @@ export default function VenuePhoto({
         sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
         className="object-cover"
         onError={() => setFailed(true)}
-        unoptimized={!!photoUrl}
+        unoptimized
       />
     </div>
   )
