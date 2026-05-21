@@ -86,8 +86,13 @@ const GUIDE_CARDS = [
 async function getFeaturedVenues() {
   try {
     return await prisma.venue.findMany({
-      where: { isFeatured: true },
+      where: {
+        city: { slug: 'london' },
+        googleRating: { gte: 4.0 },
+        photoReference: { not: null },
+      },
       include: { city: true, area: true },
+      orderBy: { googleRating: 'desc' },
       take: 4,
     })
   } catch {
