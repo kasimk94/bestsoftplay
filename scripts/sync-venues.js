@@ -21,26 +21,52 @@ if (!ANTHROPIC_API_KEY) {
   process.exit(1)
 }
 
-// ─── Helpers ───────────────────────────────────────────────────────────────
+// ─── HTTP helpers ──────────────────────────────────────────────────────────
 
-function fetchJson(url, options = {}) {
+function fetchJson(url) {
   return new Promise((resolve, reject) => {
-    const req = https.get(url, { headers: options.headers || {} }, (res) => {
+    const req = https.get(url, { headers: { 'User-Agent': 'BestSoftPlay/1.0 (bestsoftplay.co.uk)' } }, (res) => {
       let data = ''
       res.on('data', (chunk) => (data += chunk))
       res.on('end', () => {
-        try {
-          resolve(JSON.parse(data))
-        } catch (e) {
-          reject(new Error(`JSON parse error: ${data.slice(0, 200)}`))
-        }
+        try { resolve(JSON.parse(data)) }
+        catch (e) { reject(new Error(`JSON parse error: ${data.slice(0, 200)}`)) }
       })
     })
     req.on('error', reject)
-    req.setTimeout(15000, () => {
-      req.destroy()
-      reject(new Error('Request timeout'))
+    req.setTimeout(15000, () => { req.destroy(); reject(new Error('Request timeout')) })
+  })
+}
+
+function postForm(url, params) {
+  return new Promise((resolve, reject) => {
+    const bodyStr = Object.entries(params)
+      .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+      .join('&')
+    const urlObj = new URL(url)
+    const options = {
+      hostname: urlObj.hostname,
+      path: urlObj.pathname,
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Content-Length': Buffer.byteLength(bodyStr),
+        'Accept': 'application/json',
+        'User-Agent': 'BestSoftPlay/1.0 (bestsoftplay.co.uk)',
+      },
+    }
+    const req = https.request(options, (res) => {
+      let data = ''
+      res.on('data', (chunk) => (data += chunk))
+      res.on('end', () => {
+        try { resolve(JSON.parse(data)) }
+        catch (e) { reject(new Error(`JSON parse error: ${data.slice(0, 200)}`)) }
+      })
     })
+    req.on('error', reject)
+    req.setTimeout(60000, () => { req.destroy(); reject(new Error('Request timeout')) })
+    req.write(bodyStr)
+    req.end()
   })
 }
 
@@ -48,7 +74,6 @@ function postJson(url, body, headers = {}) {
   return new Promise((resolve, reject) => {
     const bodyStr = JSON.stringify(body)
     const urlObj = new URL(url)
-
     const options = {
       hostname: urlObj.hostname,
       path: urlObj.pathname,
@@ -59,23 +84,16 @@ function postJson(url, body, headers = {}) {
         ...headers,
       },
     }
-
     const req = https.request(options, (res) => {
       let data = ''
       res.on('data', (chunk) => (data += chunk))
       res.on('end', () => {
-        try {
-          resolve(JSON.parse(data))
-        } catch (e) {
-          reject(new Error(`JSON parse error: ${data.slice(0, 200)}`))
-        }
+        try { resolve(JSON.parse(data)) }
+        catch (e) { reject(new Error(`JSON parse error: ${data.slice(0, 200)}`)) }
       })
     })
     req.on('error', reject)
-    req.setTimeout(30000, () => {
-      req.destroy()
-      reject(new Error('Request timeout'))
-    })
+    req.setTimeout(30000, () => { req.destroy(); reject(new Error('Request timeout')) })
     req.write(bodyStr)
     req.end()
   })
@@ -97,8 +115,8 @@ function sleep(ms) {
 // ─── Overpass ──────────────────────────────────────────────────────────────
 
 const CITY_BBOXES = {
-  london: { south: 51.28, west: -0.51, north: 51.69, east: 0.33 },
-  birmingham: { south: 52.38, west: -2.1, north: 52.6, east: -1.6 },
+  london:     { south: 51.28, west: -0.51, north: 51.69, east:  0.33 },
+  birmingham: { south: 52.38, west: -2.10, north: 52.60, east: -1.60 },
   manchester: { south: 53.35, west: -2.45, north: 53.65, east: -1.95 },
 }
 
@@ -119,20 +137,68 @@ async function fetchOverpassVenues(citySlug) {
     out center;
   `
 
-  const encoded = encodeURIComponent(query)
-  console.log(`  → Querying Overpass for ${citySlug}...`)
-
-  const data = await fetchJson(`https://overpass-api.de/api/interpreter?data=${encoded}`)
+  console.log(`  → Querying Overpass...`)
+  const data = await postForm('https://overpass-api.de/api/interpreter', { data: query })
   return (data.elements || []).filter(
     (el) => el.tags && el.tags.name && el.tags.name.trim().length > 2
   )
 }
 
-// ─── Google Places ─────────────────────────────────────────────────────────
+// ─── Google Places text search ─────────────────────────────────────────────
+
+const CITY_NAMES = {
+  london: 'London',
+  birmingham: 'Birmingham',
+  manchester: 'Manchester',
+}
+
+const SEARCH_TERMS = [
+  'soft play',
+  'indoor play centre',
+  'kids play area',
+  'children soft play',
+]
+
+async function searchGooglePlacesVenues(cityName) {
+  const seen = new Set()
+  const results = []
+
+  for (const term of SEARCH_TERMS) {
+    const url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(`${term} ${cityName}`)}&key=${GOOGLE_PLACES_API_KEY}`
+
+    let res
+    try {
+      res = await fetchJson(url)
+    } catch (err) {
+      console.warn(`  ⚠ Google text search error (${term}): ${err.message}`)
+      continue
+    }
+
+    if (res.status !== 'OK' && res.status !== 'ZERO_RESULTS') {
+      console.warn(`  ⚠ Google text search (${term}): ${res.status}`)
+      continue
+    }
+
+    const batch = res.results || []
+    let newCount = 0
+    for (const r of batch) {
+      if (!seen.has(r.place_id)) {
+        seen.add(r.place_id)
+        results.push(r)
+        newCount++
+      }
+    }
+    console.log(`  → "${term} ${cityName}": ${batch.length} results, ${newCount} new`)
+    await sleep(500)
+  }
+
+  return results
+}
+
+// ─── Google Places detail lookup ───────────────────────────────────────────
 
 async function getGooglePlaceDetails(name, lat, lng) {
   try {
-    // Find place by text search
     const searchUrl =
       `https://maps.googleapis.com/maps/api/place/findplacefromtext/json` +
       `?input=${encodeURIComponent(name + ' soft play')}` +
@@ -145,7 +211,6 @@ async function getGooglePlaceDetails(name, lat, lng) {
     const candidate = searchRes.candidates?.[0]
     if (!candidate) return null
 
-    // Get full details
     const detailUrl =
       `https://maps.googleapis.com/maps/api/place/details/json` +
       `?place_id=${candidate.place_id}` +
@@ -160,6 +225,21 @@ async function getGooglePlaceDetails(name, lat, lng) {
   }
 }
 
+async function getGooglePlaceById(placeId) {
+  try {
+    const url =
+      `https://maps.googleapis.com/maps/api/place/details/json` +
+      `?place_id=${placeId}` +
+      `&fields=place_id,name,rating,user_ratings_total,formatted_address,formatted_phone_number,website,opening_hours,geometry,photos` +
+      `&key=${GOOGLE_PLACES_API_KEY}`
+    const res = await fetchJson(url)
+    return res.result ?? null
+  } catch (err) {
+    console.warn(`    ⚠ Google Place Details error: ${err.message}`)
+    return null
+  }
+}
+
 // ─── Google Places photo URL ───────────────────────────────────────────────
 
 function resolvePhotoUrl(photoReference, maxWidth = 800) {
@@ -169,12 +249,8 @@ function resolvePhotoUrl(photoReference, maxWidth = 800) {
       `?maxwidth=${maxWidth}&photo_reference=${encodeURIComponent(photoReference)}&key=${GOOGLE_PLACES_API_KEY}`
 
     const req = https.get(url, (res) => {
-      // Google redirects to the actual image URL
       if (res.statusCode === 302 || res.statusCode === 301) {
         resolve(res.headers.location ?? null)
-      } else if (res.statusCode === 200) {
-        // Some responses return the image directly — build a stable proxy URL instead
-        resolve(null)
       } else {
         resolve(null)
       }
@@ -198,9 +274,9 @@ async function generateDescription(venueName, address, features) {
           {
             role: 'user',
             content:
-              `Write a clean 2-sentence description for a UK soft play venue called "${venueName}" ` +
-              `located at ${address}. Features: ${features.join(', ')}. ` +
-              `Be warm, factual, and helpful for parents. No marketing fluff.`,
+              `Write a 2-sentence description for a UK soft play venue called "${venueName}" ` +
+              `at ${address}. Features: ${features.join(', ') || 'indoor play area'}. ` +
+              `Be warm and factual for parents. Plain text only, no markdown headings or formatting.`,
           },
         ],
       },
@@ -209,7 +285,6 @@ async function generateDescription(venueName, address, features) {
         'anthropic-version': '2023-06-01',
       }
     )
-
     return res.content?.[0]?.text?.trim() ?? null
   } catch (err) {
     console.warn(`    ⚠ Claude error: ${err.message}`)
@@ -220,9 +295,7 @@ async function generateDescription(venueName, address, features) {
 // ─── Area detection ────────────────────────────────────────────────────────
 
 async function findOrCreateArea(cityRecord, address, postcode) {
-  // Simple heuristic: find a matching area name in the address string
   const areas = await prisma.area.findMany({ where: { cityId: cityRecord.id } })
-
   for (const area of areas) {
     if (
       address.toLowerCase().includes(area.name.toLowerCase()) ||
@@ -231,133 +304,156 @@ async function findOrCreateArea(cityRecord, address, postcode) {
       return area
     }
   }
-
-  // Default to first area
   return areas[0] ?? null
 }
 
-// ─── Main ──────────────────────────────────────────────────────────────────
+// ─── Process a single venue ────────────────────────────────────────────────
+
+async function processVenue({ name, lat, lng, place, osmTags, cityRecord }) {
+  const slug = slugify(name)
+  const address = place?.formatted_address ?? osmTags?.['addr:street'] ?? osmTags?.address ?? ''
+  const postcode = osmTags?.['addr:postcode'] ?? ''
+  const phone = place?.formatted_phone_number ?? osmTags?.phone ?? null
+  const website = place?.website ?? osmTags?.website ?? null
+  const googleRating = place?.rating ?? null
+  const googleReviewCount = place?.user_ratings_total ?? null
+  const googlePlaceId = place?.place_id ?? null
+  const openingHours = place?.opening_hours?.weekday_text ?? null
+  const photoReference = place?.photos?.[0]?.photo_reference ?? null
+
+  let photoUrl = null
+  if (photoReference) {
+    await sleep(100)
+    photoUrl = await resolvePhotoUrl(photoReference)
+  }
+
+  const features = []
+  if (osmTags?.['toilets'] === 'yes') features.push('Toilets')
+  if (osmTags?.['cafe'] === 'yes') features.push('Café')
+  if (osmTags?.['parking'] === 'yes') features.push('Parking')
+  if (osmTags?.['wheelchair'] === 'yes') features.push('Accessible')
+
+  const area = await findOrCreateArea(cityRecord, address, postcode)
+  if (!area) {
+    console.warn(`    ⚠ No area found, skipping`)
+    return false
+  }
+
+  let description = null
+  if (address) {
+    await sleep(300)
+    description = await generateDescription(name, address, features)
+  }
+
+  if (description) console.log(`    ✅ Description generated`)
+  if (googleRating) console.log(`    ⭐ ${googleRating} (${googleReviewCount} reviews)`)
+  if (photoUrl) console.log(`    📷 Photo resolved`)
+  else if (photoReference) console.log(`    📷 Photo reference stored`)
+
+  const data = {
+    name,
+    address: address || `${name}, ${cityRecord.name}`,
+    postcode,
+    lat,
+    lng,
+    phone,
+    website,
+    googlePlaceId,
+    googleRating,
+    googleReviewCount,
+    photoReference,
+    photoUrl,
+    description,
+    features,
+    openingHours: openingHours ? { weekdays: openingHours } : undefined,
+    areaId: area.id,
+    cityId: cityRecord.id,
+  }
+
+  await prisma.venue.upsert({
+    where: { slug },
+    update: data,
+    create: { slug, ...data },
+  })
+
+  return true
+}
+
+// ─── Main sync ─────────────────────────────────────────────────────────────
 
 async function syncCity(citySlug) {
   console.log(`\n📍 Syncing ${citySlug}...`)
 
   const cityRecord = await prisma.city.findUnique({ where: { slug: citySlug } })
   if (!cityRecord) {
-    console.error(`  ❌ City "${citySlug}" not found in database. Run prisma seed first.`)
+    console.error(`  ❌ City "${citySlug}" not found. Run prisma seed first.`)
     return
   }
 
-  const elements = await fetchOverpassVenues(citySlug)
-  console.log(`  Found ${elements.length} raw elements from Overpass`)
+  // 1. Fetch from Overpass
+  const osmElements = await fetchOverpassVenues(citySlug)
+  console.log(`  Found ${osmElements.length} Overpass elements`)
+
+  // 2. Fetch from Google Places text search (up to 60 results)
+  const googleResults = await searchGooglePlacesVenues(CITY_NAMES[citySlug])
+  console.log(`  Found ${googleResults.length} Google Places results`)
+
+  // 3. Track seen place IDs to deduplicate
+  const seenPlaceIds = new Set(googleResults.map((r) => r.place_id))
+
+  // 4. For OSM venues, look up Google details and filter out duplicates
+  const osmOnlyVenues = []
+  for (const el of osmElements) {
+    const name = el.tags.name
+    const lat = el.lat ?? el.center?.lat
+    const lng = el.lon ?? el.center?.lon
+    if (!lat || !lng) continue
+
+    await sleep(250)
+    const place = await getGooglePlaceDetails(name, lat, lng)
+
+    if (place && seenPlaceIds.has(place.place_id)) {
+      console.log(`  → Skipping OSM duplicate: ${name}`)
+      continue
+    }
+
+    osmOnlyVenues.push({ name, lat, lng, osmTags: el.tags, place })
+    if (place?.place_id) seenPlaceIds.add(place.place_id)
+  }
+
+  const totalUnique = googleResults.length + osmOnlyVenues.length
+  console.log(`  → ${osmOnlyVenues.length} unique OSM-only venues`)
+  console.log(`  → ${totalUnique} total unique venues to process\n`)
 
   let synced = 0
   let skipped = 0
 
-  for (const el of elements) {
-    const name = el.tags.name
-    const lat = el.lat ?? el.center?.lat
-    const lng = el.lon ?? el.center?.lon
+  // 5. Process Google Places venues
+  for (const r of googleResults) {
+    const name = r.name
+    const lat = r.geometry.location.lat
+    const lng = r.geometry.location.lng
+    console.log(`  🎪 ${name}`)
 
-    if (!lat || !lng) {
-      skipped++
-      continue
+    // Get full details (website, phone, hours) — fall back to search data on failure
+    await sleep(200)
+    const place = await getGooglePlaceById(r.place_id) ?? {
+      place_id: r.place_id,
+      rating: r.rating,
+      user_ratings_total: r.user_ratings_total,
+      formatted_address: r.formatted_address,
+      photos: r.photos,
     }
 
-    const slug = slugify(name)
-    console.log(`\n  🎪 ${name}`)
+    const ok = await processVenue({ name, lat, lng, place, osmTags: {}, cityRecord })
+    ok ? synced++ : skipped++
+  }
 
-    // Google Places
-    await sleep(200) // rate limit
-    const place = await getGooglePlaceDetails(name, lat, lng)
-
-    const address = place?.formatted_address ?? el.tags['addr:street'] ?? el.tags.address ?? ''
-    const postcode = el.tags['addr:postcode'] ?? ''
-    const phone = place?.formatted_phone_number ?? el.tags.phone ?? null
-    const website = place?.website ?? el.tags.website ?? null
-    const googleRating = place?.rating ?? null
-    const googleReviewCount = place?.user_ratings_total ?? null
-    const googlePlaceId = place?.place_id ?? null
-    const openingHours = place?.opening_hours?.weekday_text ?? null
-    const photoReference = place?.photos?.[0]?.photo_reference ?? null
-    let photoUrl = null
-    if (photoReference) {
-      await sleep(100)
-      photoUrl = await resolvePhotoUrl(photoReference)
-    }
-
-    // Features
-    const features = []
-    if (el.tags['playground:equipment']) features.push('Play equipment')
-    if (el.tags['toilets'] === 'yes' || el.tags['toilets:wheelchair'] === 'yes') features.push('Toilets')
-    if (el.tags['cafe'] === 'yes' || el.tags['restaurant'] === 'yes') features.push('Café')
-    if (el.tags['parking'] === 'yes') features.push('Parking')
-    if (el.tags['wheelchair'] === 'yes') features.push('Accessible')
-
-    // Area
-    const area = await findOrCreateArea(cityRecord, address, postcode)
-    if (!area) {
-      console.warn(`    ⚠ No area found for ${name}, skipping`)
-      skipped++
-      continue
-    }
-
-    // Claude description
-    let description = null
-    if (address) {
-      await sleep(300)
-      description = await generateDescription(name, address, features)
-    }
-
-    if (description) console.log(`    ✅ Description: ${description.slice(0, 60)}...`)
-    if (googleRating) console.log(`    ⭐ Rating: ${googleRating} (${googleReviewCount} reviews)`)
-    if (photoUrl) console.log(`    📷 Photo URL resolved`)
-    else if (photoReference) console.log(`    📷 Photo reference stored (URL unavailable)`)
-
-    // Upsert
-    await prisma.venue.upsert({
-      where: { slug },
-      update: {
-        name,
-        address: address || `${name}, ${cityRecord.name}`,
-        postcode,
-        lat,
-        lng,
-        phone,
-        website,
-        googlePlaceId,
-        googleRating,
-        googleReviewCount,
-        photoReference,
-        photoUrl,
-        description,
-        features,
-        openingHours: openingHours ? { weekdays: openingHours } : undefined,
-        areaId: area.id,
-        cityId: cityRecord.id,
-      },
-      create: {
-        slug,
-        name,
-        address: address || `${name}, ${cityRecord.name}`,
-        postcode,
-        lat,
-        lng,
-        phone,
-        website,
-        googlePlaceId,
-        googleRating,
-        googleReviewCount,
-        photoReference,
-        photoUrl,
-        description,
-        features,
-        openingHours: openingHours ? { weekdays: openingHours } : undefined,
-        areaId: area.id,
-        cityId: cityRecord.id,
-      },
-    })
-
-    synced++
+  // 6. Process OSM-only venues
+  for (const v of osmOnlyVenues) {
+    console.log(`  🎪 ${v.name} (OSM-only)`)
+    const ok = await processVenue({ name: v.name, lat: v.lat, lng: v.lng, place: v.place, osmTags: v.osmTags, cityRecord })
+    ok ? synced++ : skipped++
   }
 
   console.log(`\n  ✅ ${citySlug}: ${synced} synced, ${skipped} skipped`)
