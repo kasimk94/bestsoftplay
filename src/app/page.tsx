@@ -264,7 +264,7 @@ export default async function HomePage() {
       </section>
 
       {/* Parent guides */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-4">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-4">
         <div className="flex items-end justify-between mb-8">
           <div>
             <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight">Parent guides</h2>
