@@ -1,9 +1,9 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
-import Link from 'next/link'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import Breadcrumb from '@/components/Breadcrumb'
+import VenueTabs from '@/components/VenueTabs'
 import { prisma } from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
@@ -23,30 +23,104 @@ async function getVenue(venueSlug: string, citySlug: string, areaSlug: string) {
   })
 }
 
+async function fetchPhotoRefs(googlePlaceId: string | null, mainRef: string | null): Promise<string[]> {
+  const key = process.env.GOOGLE_PLACES_API_KEY
+  if (!googlePlaceId || !key) return mainRef ? [mainRef] : []
+  try {
+    const res = await fetch(
+      `https://maps.googleapis.com/maps/api/place/details/json?place_id=${googlePlaceId}&fields=photos&key=${key}`,
+      { next: { revalidate: 86400 } }
+    )
+    const data = await res.json()
+    const refs: string[] = (data.result?.photos ?? [])
+      .map((p: { photo_reference: string }) => p.photo_reference)
+      .slice(0, 3)
+    return refs.length > 0 ? refs : (mainRef ? [mainRef] : [])
+  } catch {
+    return mainRef ? [mainRef] : []
+  }
+}
+
+function generateFAQs(venue: {
+  name: string
+  features: string[]
+  ageMin: number | null
+  ageMax: number | null
+  priceRange: string | null
+  area: { name: string }
+}) {
+  const hasCafe = venue.features.some(f => /caf[eé]/i.test(f))
+  const hasParking = venue.features.some(f => /parking/i.test(f))
+
+  const ageAnswer =
+    venue.ageMin !== null && venue.ageMax !== null
+      ? `${venue.name} is best suited for children aged ${venue.ageMin}–${venue.ageMax} years.`
+      : venue.ageMin !== null
+      ? `${venue.name} is suitable for children ${venue.ageMin} years and above.`
+      : `${venue.name} caters to a range of ages — check with them directly for guidance.`
+
+  return [
+    {
+      q: `What ages is ${venue.name} suitable for?`,
+      a: `${ageAnswer} Always check with the venue about height or age restrictions on specific equipment.`,
+    },
+    {
+      q: `Do I need to book in advance?`,
+      a: `Weekends and school holidays can get busy at ${venue.name}. We recommend booking ahead online or calling the venue to reserve a session and avoid disappointment.`,
+    },
+    {
+      q: `Is there a café or food available?`,
+      a: hasCafe
+        ? `Yes, ${venue.name} has a café on site — perfect for parents to grab a coffee while the kids play.`
+        : `${venue.name} may have light refreshments available. Contact them directly to find out about food and drink options.`,
+    },
+    {
+      q: `Is there parking at ${venue.name}?`,
+      a: hasParking
+        ? `Yes, ${venue.name} has parking available. It's worth confirming whether it's free or paid when you book.`
+        : `We don't have confirmed parking details for ${venue.name}. Check their website or call ahead to find out about parking nearby.`,
+    },
+    {
+      q: `How much does ${venue.name} cost?`,
+      a: venue.priceRange
+        ? `Prices at ${venue.name} are in the ${venue.priceRange} range. Exact charges vary by session — check their website for current pricing.`
+        : `Admission prices at ${venue.name} vary by session type and child's age. Visit their website or call for up-to-date pricing.`,
+    },
+  ]
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const venue = await getVenue(params.venue, params.city, params.area)
   if (!venue) return {}
-
-  const title = `${venue.name} – Soft Play in ${venue.area.name}, ${venue.city.name}`
-  const description =
-    venue.description ??
-    `${venue.name} is a soft play venue in ${venue.area.name}, ${venue.city.name}. See ratings, features, opening times, and how to get there.`
-
   return {
-    title,
-    description,
+    title: `${venue.name} – Soft Play in ${venue.area.name}, ${venue.city.name}`,
+    description:
+      venue.description ??
+      `${venue.name} is a soft play venue in ${venue.area.name}, ${venue.city.name}. See ratings, photos, opening times and how to get there.`,
     alternates: {
       canonical: `https://bestsoftplay.co.uk/${venue.city.slug}/${venue.area.slug}/${venue.slug}`,
     },
   }
 }
 
-function StarRating({ rating }: { rating: number }) {
-  const stars = Math.round(rating)
+const HERO_COLORS = ['#7F77DD', '#1D9E75', '#D85A30', '#F59E0B']
+
+function PhotoSlot({
+  photoRef,
+  name,
+  fallbackColor,
+}: {
+  photoRef: string | undefined
+  name: string
+  fallbackColor: string
+}) {
+  if (!photoRef) {
+    return <div className="absolute inset-0" style={{ backgroundColor: fallbackColor }} />
+  }
+  const src = `/api/place-photo?ref=${encodeURIComponent(photoRef)}&w=800`
   return (
-    <span className="text-amber-400 text-xl">
-      {'★'.repeat(stars)}{'☆'.repeat(5 - stars)}
-    </span>
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={src} alt={name} className="absolute inset-0 w-full h-full object-cover" />
   )
 }
 
@@ -54,7 +128,13 @@ export default async function VenuePage({ params }: Props) {
   const venue = await getVenue(params.venue, params.city, params.area)
   if (!venue) notFound()
 
-  const localBusiness = {
+  const photoRefs = await fetchPhotoRefs(venue.googlePlaceId, venue.photoReference)
+  const heroColor = HERO_COLORS[Math.abs(venue.name.charCodeAt(0)) % 4]
+  const score = venue.googleRating ? Math.round(venue.googleRating * 20) / 10 : null
+  const faqs = generateFAQs(venue)
+  const placesKey = process.env.GOOGLE_PLACES_API_KEY ?? ''
+
+  const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'LocalBusiness',
     name: venue.name,
@@ -77,11 +157,7 @@ export default async function VenuePage({ params }: Props) {
       },
     }),
     ...(venue.lat && venue.lng && {
-      geo: {
-        '@type': 'GeoCoordinates',
-        latitude: venue.lat,
-        longitude: venue.lng,
-      },
+      geo: { '@type': 'GeoCoordinates', latitude: venue.lat, longitude: venue.lng },
     }),
   }
 
@@ -96,37 +172,28 @@ export default async function VenuePage({ params }: Props) {
     ],
   }
 
-  const cardColors = ['#7F77DD', '#1D9E75', '#D85A30', '#F59E0B']
-  const cardEmojis = ['🎪', '🧸', '🎡', '🎠']
-  const colorIdx = Math.abs(venue.name.charCodeAt(0)) % 4
-  const heroColor = cardColors[colorIdx]
-  const heroEmoji = cardEmojis[colorIdx]
-
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusiness) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
       <Navbar />
 
-      {/* Hero image placeholder */}
-      <div
-        className="relative h-64 sm:h-80 flex items-center justify-center"
-        style={{ backgroundColor: heroColor }}
-      >
-        <span className="text-9xl opacity-20 select-none">{heroEmoji}</span>
-        {venue.isFeatured && (
-          <span className="absolute top-6 left-6 bg-white text-gray-900 text-sm font-bold px-3 py-1.5 rounded-full shadow">
-            ⭐ Top pick
-          </span>
-        )}
-        {venue.isNew && (
-          <span className="absolute top-6 left-6 bg-white text-gray-900 text-sm font-bold px-3 py-1.5 rounded-full shadow">
-            New
-          </span>
-        )}
+      {/* Hero photo gallery */}
+      <div className="h-[340px] sm:h-[440px] grid grid-cols-3 gap-0.5 overflow-hidden bg-gray-200">
+        <div className="col-span-2 relative">
+          <PhotoSlot photoRef={photoRefs[0]} name={venue.name} fallbackColor={heroColor} />
+        </div>
+        <div className="col-span-1 grid grid-rows-2 gap-0.5">
+          <div className="relative">
+            <PhotoSlot photoRef={photoRefs[1] ?? photoRefs[0]} name={venue.name} fallbackColor={heroColor} />
+          </div>
+          <div className="relative">
+            <PhotoSlot photoRef={photoRefs[2] ?? photoRefs[0]} name={venue.name} fallbackColor={heroColor} />
+          </div>
+        </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Breadcrumb
           crumbs={[
             { label: 'Home', href: '/' },
@@ -136,130 +203,101 @@ export default async function VenuePage({ params }: Props) {
           ]}
         />
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-          {/* Main content */}
-          <div className="lg:col-span-2">
-            <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 tracking-tight mb-2">
-              {venue.name}
-            </h1>
-
-            <p className="text-gray-500 flex items-center gap-1.5 mb-4">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-              {venue.address}, {venue.postcode}
-            </p>
-
-            {venue.googleRating && (
-              <div className="flex items-center gap-3 mb-6 p-4 bg-gray-50 rounded-2xl">
-                <StarRating rating={venue.googleRating} />
-                <div>
-                  <span className="text-2xl font-extrabold text-gray-900">{venue.googleRating.toFixed(1)}</span>
-                  {venue.googleReviewCount && (
-                    <span className="text-sm text-gray-500 ml-2">({venue.googleReviewCount.toLocaleString()} Google reviews)</span>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {venue.description && (
-              <div className="prose prose-gray max-w-none mb-8">
-                <p className="text-gray-700 text-base leading-relaxed">{venue.description}</p>
-              </div>
-            )}
-
-            {/* Features */}
-            {venue.features.length > 0 && (
-              <div className="mb-8">
-                <h2 className="text-lg font-bold text-gray-900 mb-3">Features</h2>
-                <div className="flex flex-wrap gap-2">
-                  {venue.features.map((f) => (
-                    <span key={f} className="chip bg-[#F4F3FB] text-[#7F77DD] text-sm font-medium">
-                      {f}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Age range */}
-            {(venue.ageMin !== null || venue.ageMax !== null) && (
-              <div className="mb-8">
-                <h2 className="text-lg font-bold text-gray-900 mb-3">Age range</h2>
-                <p className="text-gray-600">
-                  {venue.ageMin !== null && venue.ageMax !== null
-                    ? `${venue.ageMin}–${venue.ageMax} years`
-                    : venue.ageMin !== null
-                    ? `${venue.ageMin}+ years`
-                    : `Up to ${venue.ageMax} years`}
-                </p>
-              </div>
-            )}
-          </div>
-
-          {/* Sidebar */}
-          <div className="lg:col-span-1">
-            <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm sticky top-24 space-y-4">
-              <h2 className="font-bold text-gray-900 text-lg">Visit info</h2>
-
-              {venue.address && (
-                <div className="flex gap-3 text-sm">
-                  <svg className="w-5 h-5 text-gray-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                  <div>
-                    <p className="text-gray-900 font-medium">{venue.address}</p>
-                    <p className="text-gray-500">{venue.postcode}</p>
-                  </div>
-                </div>
-              )}
-
-              {venue.phone && (
-                <div className="flex gap-3 text-sm">
-                  <svg className="w-5 h-5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.948V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                  </svg>
-                  <a href={`tel:${venue.phone}`} className="text-[#7F77DD] hover:underline font-medium">
-                    {venue.phone}
-                  </a>
-                </div>
-              )}
-
-              {venue.priceRange && (
-                <div className="flex gap-3 text-sm">
-                  <svg className="w-5 h-5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <span className="text-gray-700 font-medium">{venue.priceRange}</span>
-                </div>
-              )}
-
-              {venue.website && (
-                <a
-                  href={venue.website}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block w-full text-center bg-[#7F77DD] text-white font-semibold py-3 rounded-xl hover:bg-[#6A62C8] transition-colors mt-2"
-                >
-                  Visit website
-                </a>
-              )}
-
-              {venue.lat && venue.lng && (
-                <a
-                  href={`https://www.google.com/maps/search/?api=1&query=${venue.lat},${venue.lng}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block w-full text-center border border-gray-200 text-gray-700 font-semibold py-3 rounded-xl hover:bg-gray-50 transition-colors"
-                >
-                  Get directions
-                </a>
-              )}
+        {/* Title + score */}
+        <div className="flex items-start justify-between gap-4 mb-3">
+          <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 tracking-tight leading-tight">
+            {venue.name}
+          </h1>
+          {score !== null && (
+            <div className="flex-shrink-0 flex flex-col items-center justify-center w-16 h-16 rounded-2xl bg-[#7F77DD] text-white shadow-md">
+              <span className="text-xl font-extrabold leading-none">{score}</span>
+              <span className="text-[10px] font-semibold opacity-80 leading-none mt-0.5">/10</span>
             </div>
-          </div>
+          )}
         </div>
+
+        {/* Meta one-liner */}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-gray-500 mb-2">
+          <span className="flex items-center gap-1">
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            {venue.area.name}, {venue.city.name}
+          </span>
+          {venue.googleRating && (
+            <>
+              <span className="text-gray-300">·</span>
+              <span className="flex items-center gap-1">
+                <span className="text-amber-400">★</span>
+                <span className="font-semibold text-gray-900">{venue.googleRating.toFixed(1)}</span>
+                {venue.googleReviewCount && (
+                  <span>({venue.googleReviewCount.toLocaleString()} reviews)</span>
+                )}
+              </span>
+            </>
+          )}
+          {venue.priceRange && (
+            <>
+              <span className="text-gray-300">·</span>
+              <span className="font-medium text-gray-700">{venue.priceRange}</span>
+            </>
+          )}
+        </div>
+
+        <p className="text-sm text-gray-500 mb-8">
+          {venue.address}{venue.postcode ? `, ${venue.postcode}` : ''}
+        </p>
+
+        {/* Action buttons */}
+        <div className="flex flex-wrap gap-3 mb-10">
+          {venue.website && (
+            <a
+              href={venue.website}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 bg-[#7F77DD] text-white font-semibold px-5 py-2.5 rounded-xl hover:bg-[#6A62C8] transition-colors text-sm"
+            >
+              Visit website
+            </a>
+          )}
+          {venue.phone && (
+            <a
+              href={`tel:${venue.phone}`}
+              className="inline-flex items-center gap-2 border border-gray-200 text-gray-700 font-semibold px-5 py-2.5 rounded-xl hover:bg-gray-50 transition-colors text-sm"
+            >
+              {venue.phone}
+            </a>
+          )}
+          {venue.lat && venue.lng && (
+            <a
+              href={`https://www.google.com/maps/search/?api=1&query=${venue.lat},${venue.lng}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 border border-gray-200 text-gray-700 font-semibold px-5 py-2.5 rounded-xl hover:bg-gray-50 transition-colors text-sm"
+            >
+              Get directions
+            </a>
+          )}
+        </div>
+
+        {/* Tabbed content */}
+        <VenueTabs
+          name={venue.name}
+          description={venue.description}
+          features={venue.features}
+          ageMin={venue.ageMin}
+          ageMax={venue.ageMax}
+          openingHours={venue.openingHours as { weekdays?: string[] } | null}
+          address={venue.address}
+          postcode={venue.postcode}
+          phone={venue.phone}
+          website={venue.website}
+          lat={venue.lat}
+          lng={venue.lng}
+          googlePlacesKey={placesKey}
+          faqs={faqs}
+        />
       </div>
 
       <Footer />
