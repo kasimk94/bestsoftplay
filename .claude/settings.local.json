@@ -3,7 +3,24 @@
     "allow": [
       "PowerShell(Get-ChildItem \"C:\\\\Users\\\\Kasim\\\\bestsoftplay\" -ErrorAction SilentlyContinue | Select-Object Name; if \\(-not \\(Get-ChildItem \"C:\\\\Users\\\\Kasim\\\\bestsoftplay\" -ErrorAction SilentlyContinue\\)\\) { \"Directory is empty or doesn't exist\" })",
       "PowerShell(cd \"C:\\\\Users\\\\Kasim\\\\bestsoftplay\"; Get-ChildItem -Recurse -Exclude node_modules,.next -Name | Where-Object { $_ -notmatch 'node_modules|\\\\.next' } | Select-Object -First 60)",
-      "Bash(gh repo *)"
+      "Bash(gh repo *)",
+      "PowerShell(notepad *)",
+      "PowerShell(cd \"C:\\\\Users\\\\Kasim\\\\bestsoftplay\"; $env:DATABASE_URL=\"postgresql://postgres:sKxphYJAAfokCALBLtvrpWYpcCoBRHbz@centerbeam.proxy.rlwy.net:47443/railway\"; npx prisma db push 2>&1)",
+      "Bash(npx tsx *)",
+      "Bash(node -e \"require\\('dotenv'\\).config\\({ path: '.env.local' }\\); require\\('./scripts/sync-venues.js'\\)\")",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(cat next.config.js)",
+      "Bash(cat next.config.mjs)",
+      "Bash(cat next.config.ts)",
+      "Bash(node -e ' *)",
+      "Bash(npx tsc *)",
+      "Bash(npx prisma *)",
+      "Bash(npx dotenv *)",
+      "Bash(node -e \"require\\('dotenv'\\).config\\({path:'.env.local'}\\); process.env.DATABASE_URL && console.log\\('URL set, length:', process.env.DATABASE_URL.length\\)\")",
+      "Bash(node -e \"require\\('dotenv'\\).config\\({path:'.env.local'}\\); const {execSync}=require\\('child_process'\\); execSync\\('npx prisma db push', {stdio:'inherit', env:{...process.env}}\\)\")",
+      "Bash(node -e \"require\\('dotenv'\\).config\\({path:'.env.local'}\\); const {execSync}=require\\('child_process'\\); execSync\\('node scripts/sync-venues.js london', {stdio:'inherit', env:{...process.env}}\\)\")"
     ]
   }
 }

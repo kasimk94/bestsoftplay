@@ -11,6 +11,8 @@ interface VenueCardProps {
     googleRating?: number | null
     googleReviewCount?: number | null
     photoReference?: string | null
+    photoReference2?: string | null
+    photoReference3?: string | null
     photoUrl?: string | null
     features: string[]
     isFeatured?: boolean
@@ -24,48 +26,55 @@ interface VenueCardProps {
 export default function VenueCard({ venue, index = 0 }: VenueCardProps) {
   const color = CARD_COLORS[index % CARD_COLORS.length]
   const href = venue.city && venue.area ? `/${venue.city.slug}/${venue.area.slug}/${venue.slug}` : '#'
-  const stars = venue.googleRating ? Math.round(venue.googleRating) : 0
   const badge = venue.isFeatured ? 'Top pick' : venue.isNew ? 'New' : null
+  const photoRef = venue.photoReference2 ?? venue.photoReference3 ?? venue.photoReference ?? null
 
   return (
-    <Link href={href} className="group block bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200">
-      {/* Full-bleed photo */}
-      <div className="relative h-[200px] overflow-hidden" style={{ backgroundColor: color }}>
-        {venue.photoReference && (
+    <Link href={href} className="group block bg-white rounded-3xl overflow-hidden shadow-sm border border-gray-100 hover:shadow-xl transition-all duration-300">
+      {/* Photo with gradient overlay */}
+      <div className="relative h-[220px] overflow-hidden" style={{ backgroundColor: color }}>
+        {photoRef && (
           <VenuePhoto
-            photoReference={venue.photoReference}
+            photoReference={photoRef}
             name={venue.name}
             fallbackColor={color}
           />
         )}
+
+        {/* Dark gradient at bottom for text legibility */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+
         {badge && (
-          <span className="absolute top-3 left-3 z-10 bg-white text-gray-900 text-xs font-bold px-2.5 py-1 rounded-full shadow-sm">
+          <span className="absolute top-3 left-3 z-10 bg-white/90 backdrop-blur-sm text-gray-900 text-xs font-bold px-2.5 py-1 rounded-full shadow-sm">
             {badge}
           </span>
         )}
+
+        {/* Venue name on photo */}
+        <div className="absolute bottom-0 left-0 right-0 px-4 pb-3 z-10">
+          <h3 className="font-bold text-white text-base leading-tight line-clamp-2 drop-shadow-sm group-hover:text-white/90 transition-colors">
+            {venue.name}
+          </h3>
+        </div>
       </div>
 
-      {/* Card content */}
-      <div className="p-4">
-        <h3 className="font-bold text-gray-900 text-base leading-tight group-hover:text-[#7F77DD] transition-colors mb-1 line-clamp-1">
-          {venue.name}
-        </h3>
-
-        <p className="text-xs text-gray-500 mb-3 line-clamp-1">
+      {/* Card footer */}
+      <div className="px-4 py-3">
+        <p className="text-xs text-gray-500 mb-2 line-clamp-1">
           {venue.area?.name ?? venue.address}
         </p>
 
         {venue.googleRating ? (
           <div className="flex items-center gap-1.5">
-            <span className="text-amber-400 text-sm leading-none">
-              {'★'.repeat(stars)}{'☆'.repeat(5 - stars)}
-            </span>
+            <span className="text-amber-400 text-sm leading-none">★</span>
             <span className="text-sm font-bold text-gray-900">{venue.googleRating.toFixed(1)}</span>
             {venue.googleReviewCount && (
-              <span className="text-xs text-gray-400">({venue.googleReviewCount.toLocaleString()})</span>
+              <span className="text-xs text-gray-400">({venue.googleReviewCount.toLocaleString()} reviews)</span>
             )}
           </div>
-        ) : null}
+        ) : (
+          <div className="h-5" />
+        )}
       </div>
     </Link>
   )

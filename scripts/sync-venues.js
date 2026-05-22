@@ -320,6 +320,8 @@ async function processVenue({ name, lat, lng, place, osmTags, cityRecord }) {
   const googlePlaceId = place?.place_id ?? null
   const openingHours = place?.opening_hours?.weekday_text ?? null
   const photoReference = place?.photos?.[0]?.photo_reference ?? null
+  const photoReference2 = place?.photos?.[2]?.photo_reference ?? null
+  const photoReference3 = place?.photos?.[3]?.photo_reference ?? null
 
   let photoUrl = null
   if (photoReference) {
@@ -362,6 +364,8 @@ async function processVenue({ name, lat, lng, place, osmTags, cityRecord }) {
     googleRating,
     googleReviewCount,
     photoReference,
+    photoReference2,
+    photoReference3,
     photoUrl,
     description,
     features,
