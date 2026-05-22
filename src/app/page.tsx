@@ -8,6 +8,8 @@ import { prisma } from '@/lib/prisma'
 import AnimatedWord from '@/components/AnimatedWord'
 import FloatingEmojis from '@/components/FloatingEmojis'
 
+export const dynamic = 'force-dynamic'
+
 export const metadata: Metadata = {
   title: 'BestSoftPlay – Find the Best Soft Play Venues in the UK',
   description:
