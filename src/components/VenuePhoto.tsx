@@ -3,15 +3,17 @@
 import { useState } from 'react'
 
 interface VenuePhotoProps {
-  src: string
+  photoReference: string
   name: string
   fallbackColor: string
   fallbackEmoji: string
   badge: string | null
 }
 
-export default function VenuePhoto({ src, name, fallbackColor, fallbackEmoji, badge }: VenuePhotoProps) {
+export default function VenuePhoto({ photoReference, name, fallbackColor, fallbackEmoji, badge }: VenuePhotoProps) {
   const [failed, setFailed] = useState(false)
+
+  const src = `/api/place-photo?ref=${encodeURIComponent(photoReference)}&w=800`
 
   if (failed) {
     return (

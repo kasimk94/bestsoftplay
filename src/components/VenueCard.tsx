@@ -1,8 +1,6 @@
 import Link from 'next/link'
 import VenuePhoto from './VenuePhoto'
 
-const PLACES_KEY = process.env.GOOGLE_PLACES_API_KEY ?? ''
-
 const CARD_COLORS = [
   { bg: '#7F77DD', emoji: '🎪' },
   { bg: '#1D9E75', emoji: '🧸' },
@@ -51,16 +49,12 @@ export default function VenueCard({ venue, index = 0 }: VenueCardProps) {
       ? `/${venue.city.slug}/${venue.area.slug}/${venue.slug}`
       : '#'
 
-  const photoSrc = venue.photoReference && PLACES_KEY
-    ? `https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photo_reference=${encodeURIComponent(venue.photoReference)}&key=${PLACES_KEY}`
-    : (venue.photoUrl ?? null)
-
   return (
     <Link href={href} className="venue-card group block">
       {/* Photo or coloured placeholder */}
-      {photoSrc ? (
+      {venue.photoReference ? (
         <VenuePhoto
-          src={photoSrc}
+          photoReference={venue.photoReference}
           name={venue.name}
           fallbackColor={color.bg}
           fallbackEmoji={color.emoji}
