@@ -240,6 +240,30 @@ async function getGooglePlaceById(placeId) {
   }
 }
 
+// ─── Photo selection ───────────────────────────────────────────────────────
+
+/**
+ * Pick the best photo reference from a Google Places photos array.
+ * Filters out obvious banners/flyers (width > height * 1.5 = very landscape),
+ * then picks the photo with aspect ratio closest to 1:1 (most likely an interior shot).
+ */
+function pickBestPhotoRef(photos) {
+  if (!photos || photos.length === 0) return null
+
+  // Skip very-wide landscape images (flyers, banners, menu boards)
+  const notBanner = photos.filter(p => p.width <= p.height * 1.5)
+  const pool = notBanner.length > 0 ? notBanner : photos // fall back to all if everything is landscape
+
+  // Sort by closeness to 1:1 aspect ratio — interior shots tend to be squarish
+  const sorted = [...pool].sort((a, b) => {
+    const aScore = Math.abs(a.width / a.height - 1)
+    const bScore = Math.abs(b.width / b.height - 1)
+    return aScore - bScore
+  })
+
+  return sorted[0]?.photo_reference ?? null
+}
+
 // ─── Google Places photo URL ───────────────────────────────────────────────
 
 function resolvePhotoUrl(photoReference, maxWidth = 800) {
@@ -319,9 +343,13 @@ async function processVenue({ name, lat, lng, place, osmTags, cityRecord }) {
   const googleReviewCount = place?.user_ratings_total ?? null
   const googlePlaceId = place?.place_id ?? null
   const openingHours = place?.opening_hours?.weekday_text ?? null
-  const photoReference = place?.photos?.[0]?.photo_reference ?? null
-  const photoReference2 = place?.photos?.[2]?.photo_reference ?? null
-  const photoReference3 = place?.photos?.[3]?.photo_reference ?? null
+  const allPhotos = place?.photos?.slice(0, 10) ?? []
+  const photoReference = pickBestPhotoRef(allPhotos)
+  // Keep runner-up refs as fallback in case CDN URL expires
+  const usedRef = photoReference
+  const remaining = allPhotos.filter(p => p.photo_reference !== usedRef)
+  const photoReference2 = pickBestPhotoRef(remaining) ?? null
+  const photoReference3 = null
 
   let photoUrl = null
   if (photoReference) {
@@ -349,8 +377,15 @@ async function processVenue({ name, lat, lng, place, osmTags, cityRecord }) {
 
   if (description) console.log(`    ✅ Description generated`)
   if (googleRating) console.log(`    ⭐ ${googleRating} (${googleReviewCount} reviews)`)
-  if (photoUrl) console.log(`    📷 Photo resolved`)
-  else if (photoReference) console.log(`    📷 Photo reference stored`)
+  if (photoUrl) {
+    const chosen = allPhotos.find(p => p.photo_reference === photoReference)
+    const dims = chosen ? ` [${chosen.width}×${chosen.height}, ${allPhotos.length} photos]` : ''
+    console.log(`    📷 Photo resolved${dims}`)
+  } else if (photoReference) {
+    console.log(`    📷 Photo reference stored (no URL resolved)`)
+  } else {
+    console.log(`    ⚠ No usable photo found`)
+  }
 
   const data = {
     name,
