@@ -144,6 +144,35 @@ async function fetchOverpassVenues(citySlug) {
   )
 }
 
+// ─── Venue filtering ───────────────────────────────────────────────────────
+
+// Venues whose names contain these strings are not soft plays and should be excluded
+const EXCLUDED_KEYWORDS = [
+  'Crystal Maze', 'King Pins', 'Treetop Golf', 'Sandbox VR',
+  'Bowling', 'Trampoline', 'Escape Room', 'Gamebox', 'Rock Over Climbing',
+  'Cinema', 'Golf', 'Laser', 'Arcade',
+]
+
+function isExcludedVenue(name) {
+  const lower = name.toLowerCase()
+  return EXCLUDED_KEYWORDS.some(kw => lower.includes(kw.toLowerCase()))
+}
+
+async function cleanupExcludedVenues() {
+  console.log('\n🧹 Removing non-soft-play venues...')
+  let total = 0
+  for (const kw of EXCLUDED_KEYWORDS) {
+    const r = await prisma.venue.deleteMany({
+      where: { name: { contains: kw, mode: 'insensitive' } },
+    })
+    if (r.count > 0) {
+      console.log(`  🗑 Deleted ${r.count} venue(s) matching "${kw}"`)
+      total += r.count
+    }
+  }
+  console.log(`  Done — ${total} venue(s) removed`)
+}
+
 // ─── Google Places text search ─────────────────────────────────────────────
 
 const CITY_NAMES = {
@@ -154,42 +183,71 @@ const CITY_NAMES = {
 
 const SEARCH_TERMS = [
   'soft play',
+  'soft play centre',
   'indoor play centre',
+  "children's play centre",
   'kids play area',
-  'children soft play',
+  'toddler play centre',
+  'baby play centre',
+  'play cafe',
+  'sensory play',
+  'ball pit',
 ]
 
-async function searchGooglePlacesVenues(cityName) {
+// London-specific area searches (term "soft play" only to avoid explosion)
+const LONDON_AREA_QUERIES = [
+  'soft play North London',
+  'soft play South London',
+  'soft play East London',
+  'soft play West London',
+  'soft play Croydon',
+  'soft play Bromley',
+  'soft play Hackney',
+  'soft play Islington',
+  'soft play Wandsworth',
+  'soft play Greenwich',
+]
+
+async function runTextSearch(query, seen, results) {
+  const url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&key=${GOOGLE_PLACES_API_KEY}`
+  let res
+  try {
+    res = await fetchJson(url)
+  } catch (err) {
+    console.warn(`  ⚠ Search error (${query}): ${err.message}`)
+    return
+  }
+  if (res.status !== 'OK' && res.status !== 'ZERO_RESULTS') {
+    console.warn(`  ⚠ Search status (${query}): ${res.status}`)
+    return
+  }
+  const batch = res.results || []
+  let newCount = 0
+  for (const r of batch) {
+    if (!seen.has(r.place_id) && !isExcludedVenue(r.name)) {
+      seen.add(r.place_id)
+      results.push(r)
+      newCount++
+    }
+  }
+  console.log(`  → "${query}": ${batch.length} results, ${newCount} new`)
+  await sleep(500)
+}
+
+async function searchGooglePlacesVenues(cityName, citySlug) {
   const seen = new Set()
   const results = []
 
+  // Standard search terms × city name
   for (const term of SEARCH_TERMS) {
-    const url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(`${term} ${cityName}`)}&key=${GOOGLE_PLACES_API_KEY}`
+    await runTextSearch(`${term} ${cityName}`, seen, results)
+  }
 
-    let res
-    try {
-      res = await fetchJson(url)
-    } catch (err) {
-      console.warn(`  ⚠ Google text search error (${term}): ${err.message}`)
-      continue
+  // London-specific area searches
+  if (citySlug === 'london') {
+    for (const query of LONDON_AREA_QUERIES) {
+      await runTextSearch(query, seen, results)
     }
-
-    if (res.status !== 'OK' && res.status !== 'ZERO_RESULTS') {
-      console.warn(`  ⚠ Google text search (${term}): ${res.status}`)
-      continue
-    }
-
-    const batch = res.results || []
-    let newCount = 0
-    for (const r of batch) {
-      if (!seen.has(r.place_id)) {
-        seen.add(r.place_id)
-        results.push(r)
-        newCount++
-      }
-    }
-    console.log(`  → "${term} ${cityName}": ${batch.length} results, ${newCount} new`)
-    await sleep(500)
   }
 
   return results
@@ -464,8 +522,8 @@ async function syncCity(citySlug) {
   const osmElements = await fetchOverpassVenues(citySlug)
   console.log(`  Found ${osmElements.length} Overpass elements`)
 
-  // 2. Fetch from Google Places text search (up to 60 results)
-  const googleResults = await searchGooglePlacesVenues(CITY_NAMES[citySlug])
+  // 2. Fetch from Google Places text search
+  const googleResults = await searchGooglePlacesVenues(CITY_NAMES[citySlug], citySlug)
   console.log(`  Found ${googleResults.length} Google Places results`)
 
   // 3. Track seen place IDs to deduplicate
@@ -501,6 +559,11 @@ async function syncCity(citySlug) {
   // 5. Process Google Places venues
   for (const r of googleResults) {
     const name = r.name
+    if (isExcludedVenue(name)) {
+      console.log(`  ⛔ Skipping excluded: ${name}`)
+      skipped++
+      continue
+    }
     const lat = r.geometry.location.lat
     const lng = r.geometry.location.lng
     console.log(`  🎪 ${name}`)
@@ -521,6 +584,11 @@ async function syncCity(citySlug) {
 
   // 6. Process OSM-only venues
   for (const v of osmOnlyVenues) {
+    if (isExcludedVenue(v.name)) {
+      console.log(`  ⛔ Skipping excluded: ${v.name} (OSM-only)`)
+      skipped++
+      continue
+    }
     console.log(`  🎪 ${v.name} (OSM-only)`)
     const ok = await processVenue({ name: v.name, lat: v.lat, lng: v.lng, place: v.place, osmTags: v.osmTags, cityRecord })
     ok ? synced++ : skipped++
@@ -534,6 +602,8 @@ async function main() {
   console.log('─'.repeat(50))
 
   try {
+    await cleanupExcludedVenues()
+
     await syncCity('london')
     await syncCity('birmingham')
     await syncCity('manchester')
