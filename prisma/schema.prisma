@@ -28,6 +28,8 @@ model Venue {
   photoReference2   String?
   photoReference3   String?
   photoUrl          String?
+  photoUrl2         String?
+  photoUrl3         String?
   description       String?
   ageMin            Int?
   ageMax            Int?

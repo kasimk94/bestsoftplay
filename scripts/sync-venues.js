@@ -242,26 +242,62 @@ async function getGooglePlaceById(placeId) {
 
 // ─── Photo selection ───────────────────────────────────────────────────────
 
+function extractAttribName(html) {
+  const m = html.match(/>([^<]+)<\/a>/)
+  return m ? m[1].trim() : ''
+}
+
 /**
- * Pick the best photo reference from a Google Places photos array.
- * Filters out obvious banners/flyers (width > height * 1.5 = very landscape),
- * then picks the photo with aspect ratio closest to 1:1 (most likely an interior shot).
+ * Score, sort, then resolve CDN URLs for the top 3 photos.
+ * Scoring:
+ *   +3  attribution name doesn't match venue (user-submitted = real interior)
+ *   +1  no attribution (neutral)
+ *    0  attribution matches venue name (business owner promo photo)
+ *   +2  aspect ratio ≤ 1:1 (portrait) — interior shots are usually portrait/square
+ *   skip  width > height * 1.5 (obvious banner/flyer/wide landscape)
+ *
+ * We score without HTTP calls first, then only resolve URLs for the best candidates.
  */
-function pickBestPhotoRef(photos) {
-  if (!photos || photos.length === 0) return null
+async function pickTopPhotoUrls(photos, venueName, count = 3) {
+  if (!photos || photos.length === 0) return []
 
-  // Skip very-wide landscape images (flyers, banners, menu boards)
-  const notBanner = photos.filter(p => p.width <= p.height * 1.5)
-  const pool = notBanner.length > 0 ? notBanner : photos // fall back to all if everything is landscape
+  const venueNameLower = venueName.toLowerCase()
 
-  // Sort by closeness to 1:1 aspect ratio — interior shots tend to be squarish
-  const sorted = [...pool].sort((a, b) => {
-    const aScore = Math.abs(a.width / a.height - 1)
-    const bScore = Math.abs(b.width / b.height - 1)
-    return aScore - bScore
-  })
+  const scored = photos
+    .slice(0, 10)
+    .filter(p => p.width <= p.height * 1.5) // skip wide banners/flyers
+    .map(p => {
+      const attrName = extractAttribName(p.html_attributions?.[0] ?? '').toLowerCase()
+      let score = 0
 
-  return sorted[0]?.photo_reference ?? null
+      if (!attrName) {
+        score += 1 // unknown attribution — neutral
+      } else if (
+        !attrName.includes(venueNameLower.slice(0, 6)) &&
+        !venueNameLower.includes(attrName.slice(0, 6))
+      ) {
+        score += 3 // user-submitted, not the business owner
+      }
+      // else: attribution matches venue → score stays 0 (deprioritised)
+
+      // Prefer portrait/square — interior shots tend to be taller than wide
+      const ratio = p.width / p.height
+      if (ratio <= 1.0) score += 2        // portrait or square
+      else if (ratio <= 1.2) score += 1   // slightly landscape but still ok
+
+      return { photo: p, score }
+    })
+    .sort((a, b) => b.score - a.score)
+
+  const urls = []
+  for (const { photo } of scored) {
+    if (urls.length >= count) break
+    await sleep(150)
+    const url = await resolvePhotoUrl(photo.photo_reference)
+    if (url) urls.push(url)
+  }
+
+  return urls
 }
 
 // ─── Google Places photo URL ───────────────────────────────────────────────
@@ -344,18 +380,13 @@ async function processVenue({ name, lat, lng, place, osmTags, cityRecord }) {
   const googlePlaceId = place?.place_id ?? null
   const openingHours = place?.opening_hours?.weekday_text ?? null
   const allPhotos = place?.photos?.slice(0, 10) ?? []
-  const photoReference = pickBestPhotoRef(allPhotos)
-  // Keep runner-up refs as fallback in case CDN URL expires
-  const usedRef = photoReference
-  const remaining = allPhotos.filter(p => p.photo_reference !== usedRef)
-  const photoReference2 = pickBestPhotoRef(remaining) ?? null
+  // Keep the first reference for proxy fallback (in case CDN URLs expire)
+  const photoReference = allPhotos[0]?.photo_reference ?? null
+  const photoReference2 = null
   const photoReference3 = null
 
-  let photoUrl = null
-  if (photoReference) {
-    await sleep(100)
-    photoUrl = await resolvePhotoUrl(photoReference)
-  }
+  const photoUrls = await pickTopPhotoUrls(allPhotos, name)
+  const [photoUrl = null, photoUrl2 = null, photoUrl3 = null] = photoUrls
 
   const features = []
   if (osmTags?.['toilets'] === 'yes') features.push('Toilets')
@@ -377,14 +408,12 @@ async function processVenue({ name, lat, lng, place, osmTags, cityRecord }) {
 
   if (description) console.log(`    ✅ Description generated`)
   if (googleRating) console.log(`    ⭐ ${googleRating} (${googleReviewCount} reviews)`)
-  if (photoUrl) {
-    const chosen = allPhotos.find(p => p.photo_reference === photoReference)
-    const dims = chosen ? ` [${chosen.width}×${chosen.height}, ${allPhotos.length} photos]` : ''
-    console.log(`    📷 Photo resolved${dims}`)
+  if (photoUrls.length > 0) {
+    console.log(`    📷 ${photoUrls.length} photo URL(s) resolved from ${allPhotos.length} candidates`)
   } else if (photoReference) {
-    console.log(`    📷 Photo reference stored (no URL resolved)`)
+    console.log(`    📷 Photo reference stored (CDN resolve failed)`)
   } else {
-    console.log(`    ⚠ No usable photo found`)
+    console.log(`    ⚠ No photos found`)
   }
 
   const data = {
@@ -402,6 +431,8 @@ async function processVenue({ name, lat, lng, place, osmTags, cityRecord }) {
     photoReference2,
     photoReference3,
     photoUrl,
+    photoUrl2,
+    photoUrl3,
     description,
     features,
     openingHours: openingHours ? { weekdays: openingHours } : undefined,
