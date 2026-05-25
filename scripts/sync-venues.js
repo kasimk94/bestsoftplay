@@ -208,6 +208,33 @@ const LONDON_AREA_QUERIES = [
   'soft play Greenwich',
 ]
 
+const BIRMINGHAM_AREA_QUERIES = [
+  'soft play Solihull',
+  'soft play Sutton Coldfield',
+  'soft play Wolverhampton',
+  'soft play Coventry',
+  'soft play Walsall',
+  'soft play Dudley',
+  'soft play Sandwell',
+  'indoor play West Midlands',
+  'soft play Tamworth',
+  'soft play Lichfield',
+]
+
+const MANCHESTER_AREA_QUERIES = [
+  'soft play Stockport',
+  'soft play Bolton',
+  'soft play Wigan',
+  'soft play Oldham',
+  'soft play Rochdale',
+  'soft play Bury',
+  'soft play Salford',
+  'soft play Trafford',
+  'soft play Altrincham',
+  'soft play Ashton',
+  'soft play Warrington',
+]
+
 async function runTextSearch(query, seen, results) {
   const url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&key=${GOOGLE_PLACES_API_KEY}`
   let res
@@ -243,9 +270,19 @@ async function searchGooglePlacesVenues(cityName, citySlug) {
     await runTextSearch(`${term} ${cityName}`, seen, results)
   }
 
-  // London-specific area searches
+  // City-specific area searches
   if (citySlug === 'london') {
     for (const query of LONDON_AREA_QUERIES) {
+      await runTextSearch(query, seen, results)
+    }
+  }
+  if (citySlug === 'birmingham') {
+    for (const query of BIRMINGHAM_AREA_QUERIES) {
+      await runTextSearch(query, seen, results)
+    }
+  }
+  if (citySlug === 'manchester') {
+    for (const query of MANCHESTER_AREA_QUERIES) {
       await runTextSearch(query, seen, results)
     }
   }
