@@ -350,7 +350,7 @@ async function pickTopPhotoUrls(photos, venueName, count = 3) {
   const urls = []
   for (const { photo } of scored) {
     if (urls.length >= count) break
-    await sleep(150)
+    await sleep(80)
     const url = await resolvePhotoUrl(photo.photo_reference)
     if (url) urls.push(url)
   }
@@ -437,7 +437,7 @@ async function processVenue({ name, lat, lng, place, osmTags, cityRecord }) {
   const googleReviewCount = place?.user_ratings_total ?? null
   const googlePlaceId = place?.place_id ?? null
   const openingHours = place?.opening_hours?.weekday_text ?? null
-  const allPhotos = place?.photos?.slice(0, 10) ?? []
+  const allPhotos = place?.photos?.slice(0, 5) ?? []
   // Keep the first reference for proxy fallback (in case CDN URLs expire)
   const photoReference = allPhotos[0]?.photo_reference ?? null
   const photoReference2 = null
@@ -458,13 +458,14 @@ async function processVenue({ name, lat, lng, place, osmTags, cityRecord }) {
     return false
   }
 
-  let description = null
-  if (address) {
-    await sleep(300)
+  // Re-use existing description — only generate if the venue is new or has none
+  const existing = await prisma.venue.findUnique({ where: { slug }, select: { description: true } })
+  let description = existing?.description ?? null
+  if (!description && address) {
+    await sleep(150)
     description = await generateDescription(name, address, features)
+    if (description) console.log(`    ✅ Description generated`)
   }
-
-  if (description) console.log(`    ✅ Description generated`)
   if (googleRating) console.log(`    ⭐ ${googleRating} (${googleReviewCount} reviews)`)
   if (photoUrls.length > 0) {
     console.log(`    📷 ${photoUrls.length} photo URL(s) resolved from ${allPhotos.length} candidates`)
@@ -569,7 +570,7 @@ async function syncCity(citySlug) {
     console.log(`  🎪 ${name}`)
 
     // Get full details (website, phone, hours) — fall back to search data on failure
-    await sleep(200)
+    await sleep(100)
     const place = await getGooglePlaceById(r.place_id) ?? {
       place_id: r.place_id,
       rating: r.rating,
@@ -598,15 +599,19 @@ async function syncCity(citySlug) {
 }
 
 async function main() {
+  const VALID_CITIES = ['london', 'birmingham', 'manchester']
+  const args = process.argv.slice(2).filter(a => VALID_CITIES.includes(a))
+  const cities = args.length > 0 ? args : VALID_CITIES
+
   console.log('🎊  BestSoftPlay venue sync\n')
   console.log('─'.repeat(50))
 
   try {
     await cleanupExcludedVenues()
 
-    await syncCity('london')
-    await syncCity('birmingham')
-    await syncCity('manchester')
+    for (const city of cities) {
+      await syncCity(city)
+    }
 
     const total = await prisma.venue.count()
     console.log(`\n✅ Sync complete. Total venues in DB: ${total}`)
