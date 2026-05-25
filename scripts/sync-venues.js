@@ -194,6 +194,26 @@ const SEARCH_TERMS = [
   'ball pit',
 ]
 
+// Search terms used for per-area expansion (beyond the city-wide SEARCH_TERMS)
+const AREA_EXTRA_TERMS = [
+  'indoor play centre',
+  "children's play centre",
+  'play cafe',
+  'kids play area',
+  'sensory play',
+]
+
+function buildAreaQueries(areas) {
+  const queries = []
+  for (const area of areas) {
+    queries.push(`soft play ${area}`)
+    for (const term of AREA_EXTRA_TERMS) {
+      queries.push(`${term} ${area}`)
+    }
+  }
+  return queries
+}
+
 // London-specific area searches (term "soft play" only to avoid explosion)
 const LONDON_AREA_QUERIES = [
   'soft play North London',
@@ -208,31 +228,14 @@ const LONDON_AREA_QUERIES = [
   'soft play Greenwich',
 ]
 
-const BIRMINGHAM_AREA_QUERIES = [
-  'soft play Solihull',
-  'soft play Sutton Coldfield',
-  'soft play Wolverhampton',
-  'soft play Coventry',
-  'soft play Walsall',
-  'soft play Dudley',
-  'soft play Sandwell',
-  'indoor play West Midlands',
-  'soft play Tamworth',
-  'soft play Lichfield',
+const BIRMINGHAM_AREAS = [
+  'Solihull', 'Sutton Coldfield', 'Wolverhampton', 'Coventry',
+  'Walsall', 'Dudley', 'Sandwell', 'West Midlands', 'Tamworth', 'Lichfield',
 ]
 
-const MANCHESTER_AREA_QUERIES = [
-  'soft play Stockport',
-  'soft play Bolton',
-  'soft play Wigan',
-  'soft play Oldham',
-  'soft play Rochdale',
-  'soft play Bury',
-  'soft play Salford',
-  'soft play Trafford',
-  'soft play Altrincham',
-  'soft play Ashton',
-  'soft play Warrington',
+const MANCHESTER_AREAS = [
+  'Stockport', 'Bolton', 'Wigan', 'Oldham', 'Rochdale',
+  'Bury', 'Salford', 'Trafford', 'Altrincham', 'Ashton', 'Warrington',
 ]
 
 async function runTextSearch(query, seen, results) {
@@ -277,12 +280,12 @@ async function searchGooglePlacesVenues(cityName, citySlug) {
     }
   }
   if (citySlug === 'birmingham') {
-    for (const query of BIRMINGHAM_AREA_QUERIES) {
+    for (const query of buildAreaQueries(BIRMINGHAM_AREAS)) {
       await runTextSearch(query, seen, results)
     }
   }
   if (citySlug === 'manchester') {
-    for (const query of MANCHESTER_AREA_QUERIES) {
+    for (const query of buildAreaQueries(MANCHESTER_AREAS)) {
       await runTextSearch(query, seen, results)
     }
   }
