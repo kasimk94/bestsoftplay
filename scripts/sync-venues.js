@@ -596,6 +596,17 @@ async function syncCity(citySlug) {
 
   let synced = 0
   let skipped = 0
+  let processed = 0
+
+  // Reconnect every 40 venues to prevent P1017 connection drops on long runs
+  async function maybeReconnect() {
+    processed++
+    if (processed % 40 === 0) {
+      console.log(`  🔄 Refreshing DB connection (${processed} processed)...`)
+      await prisma.$disconnect()
+      await prisma.$connect()
+    }
+  }
 
   // 5. Process Google Places venues
   for (const r of googleResults) {
@@ -621,6 +632,7 @@ async function syncCity(citySlug) {
 
     const ok = await processVenue({ name, lat, lng, place, osmTags: {}, cityRecord })
     ok ? synced++ : skipped++
+    await maybeReconnect()
   }
 
   // 6. Process OSM-only venues
@@ -633,6 +645,7 @@ async function syncCity(citySlug) {
     console.log(`  🎪 ${v.name} (OSM-only)`)
     const ok = await processVenue({ name: v.name, lat: v.lat, lng: v.lng, place: v.place, osmTags: v.osmTags, cityRecord })
     ok ? synced++ : skipped++
+    await maybeReconnect()
   }
 
   console.log(`\n  ✅ ${citySlug}: ${synced} synced, ${skipped} skipped`)
