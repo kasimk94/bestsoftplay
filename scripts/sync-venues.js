@@ -214,18 +214,12 @@ function buildAreaQueries(areas) {
   return queries
 }
 
-// London-specific area searches (term "soft play" only to avoid explosion)
-const LONDON_AREA_QUERIES = [
-  'soft play North London',
-  'soft play South London',
-  'soft play East London',
-  'soft play West London',
-  'soft play Croydon',
-  'soft play Bromley',
-  'soft play Hackney',
-  'soft play Islington',
-  'soft play Wandsworth',
-  'soft play Greenwich',
+const LONDON_AREAS = [
+  'North London', 'South London', 'East London', 'West London',
+  'Croydon', 'Bromley', 'Hackney', 'Islington', 'Wandsworth', 'Greenwich',
+  'Lewisham', 'Southwark', 'Lambeth', 'Tower Hamlets', 'Newham',
+  'Barnet', 'Enfield', 'Haringey', 'Walthamstow', 'Romford',
+  'Ilford', 'Stratford', 'Woolwich', 'Eltham', 'Sidcup',
 ]
 
 const BIRMINGHAM_AREAS = [
@@ -275,7 +269,7 @@ async function searchGooglePlacesVenues(cityName, citySlug) {
 
   // City-specific area searches
   if (citySlug === 'london') {
-    for (const query of LONDON_AREA_QUERIES) {
+    for (const query of buildAreaQueries(LONDON_AREAS)) {
       await runTextSearch(query, seen, results)
     }
   }
