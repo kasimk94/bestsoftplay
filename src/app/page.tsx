@@ -13,7 +13,7 @@ export const dynamic = 'force-dynamic'
 export const metadata: Metadata = {
   title: 'BestSoftPlay – Find the Best Soft Play Venues in the UK',
   description:
-    'Discover 320+ soft play venues across London, Birmingham, and Manchester. Filter by age, features, and ratings to find the perfect indoor play centre for your little ones.',
+    'Discover hundreds of soft play venues across London, Birmingham, and Manchester. Filter by age, features, and ratings to find the perfect indoor play centre for your little ones.',
 }
 
 const QUICK_FILTERS = [
@@ -33,7 +33,6 @@ const CITY_CARDS = [
     slug: 'london',
     colour: '#7F77DD',
     emoji: '🏙️',
-    venueCount: 180,
     areas: ['South London', 'North London', 'East London', 'West London'],
   },
   {
@@ -41,7 +40,6 @@ const CITY_CARDS = [
     slug: 'birmingham',
     colour: '#D85A30',
     emoji: '🏭',
-    venueCount: 85,
     areas: ['City Centre', 'Solihull', 'Sutton Coldfield'],
   },
   {
@@ -49,7 +47,6 @@ const CITY_CARDS = [
     slug: 'manchester',
     colour: '#1D9E75',
     emoji: '🌧️',
-    venueCount: 72,
     areas: ['City Centre', 'Salford', 'Trafford', 'Stockport'],
   },
 ]
@@ -85,6 +82,26 @@ const GUIDE_CARDS = [
   },
 ]
 
+async function getCityStats() {
+  try {
+    const cities = await prisma.city.findMany({
+      select: {
+        slug: true,
+        _count: { select: { venues: true } },
+      },
+    })
+    const counts: Record<string, number> = {}
+    let total = 0
+    for (const c of cities) {
+      counts[c.slug] = c._count.venues
+      total += c._count.venues
+    }
+    return { counts, total }
+  } catch {
+    return { counts: {}, total: 0 }
+  }
+}
+
 async function getFeaturedVenues() {
   try {
     return await prisma.venue.findMany({
@@ -103,10 +120,13 @@ async function getFeaturedVenues() {
 }
 
 export default async function HomePage() {
-  const featuredVenues = await getFeaturedVenues()
+  const [featuredVenues, { counts, total }] = await Promise.all([
+    getFeaturedVenues(),
+    getCityStats(),
+  ])
 
   const STATS = [
-    { value: '320+', label: 'Venues listed' },
+    { value: total > 0 ? `${total}` : '600+', label: 'Venues listed' },
     { value: '3', label: 'Cities covered' },
     { value: '★ 4.5', label: 'Avg Google rating' },
     { value: 'Free', label: 'Always free to use' },
@@ -132,7 +152,7 @@ export default async function HomePage() {
           </h1>
 
           <p className="text-lg sm:text-xl text-gray-500 mb-10 max-w-2xl mx-auto leading-relaxed">
-            Browse 320+ verified soft play venues across the UK with real Google ratings,
+            Browse {total > 0 ? `${total}+` : 'hundreds of'} verified soft play venues across the UK with real Google ratings,
             parent reviews, and up-to-date opening times.
           </p>
 
@@ -191,7 +211,7 @@ export default async function HomePage() {
 
               <div className="relative z-10">
                 <p className="text-white/70 text-sm font-medium mb-1">
-                  {city.venueCount}+ venues
+                  {counts[city.slug] ?? '—'} venues
                 </p>
                 <h3 className="text-white text-3xl font-extrabold tracking-tight mb-3">
                   {city.name}
