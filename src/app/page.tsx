@@ -31,157 +31,32 @@ const CITY_CARDS = [
   {
     name: 'London',
     slug: 'london',
-    colour: '#7F77DD',
+    colour: '#5B21B6',
     emoji: '🎡',
-    gradient: 'linear-gradient(145deg, #4C44C8 0%, #7F77DD 55%, #9B94E8 100%)',
+    gradient: 'linear-gradient(135deg, #7C3AED 0%, #A855F7 50%, #EC4899 100%)',
+    scatter: ['✨', '⭐', '💫', '🌟', '✨', '⭐'],
     areas: ['South London', 'North London', 'East London', 'West London'],
   },
   {
     name: 'Birmingham',
     slug: 'birmingham',
-    colour: '#D85A30',
+    colour: '#9A3412',
     emoji: '🎠',
-    gradient: 'linear-gradient(145deg, #B83D18 0%, #D85A30 55%, #E87048 100%)',
+    gradient: 'linear-gradient(135deg, #EA580C 0%, #F97316 50%, #FDE047 100%)',
+    scatter: ['🎊', '✨', '⭐', '🎉', '✨', '💛'],
     areas: ['City Centre', 'Solihull', 'Sutton Coldfield'],
   },
   {
     name: 'Manchester',
     slug: 'manchester',
-    colour: '#1D9E75',
-    emoji: '⭐',
-    gradient: 'linear-gradient(145deg, #0C7A50 0%, #1D9E75 55%, #25BC8A 100%)',
+    colour: '#065F46',
+    emoji: '🌈',
+    gradient: 'linear-gradient(135deg, #059669 0%, #14B8A6 50%, #22D3EE 100%)',
+    scatter: ['🌟', '✨', '⭐', '💫', '✨', '🌟'],
     areas: ['City Centre', 'Salford', 'Trafford', 'Stockport'],
   },
 ]
 
-function CityCardBg({ slug }: { slug: string }) {
-  if (slug === 'london') {
-    return (
-      <svg className="absolute inset-0 w-full h-full" viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <pattern id="london-dots" x="0" y="0" width="22" height="22" patternUnits="userSpaceOnUse">
-            <circle cx="11" cy="11" r="2" fill="white" fillOpacity="0.18"/>
-          </pattern>
-        </defs>
-        <rect width="400" height="300" fill="url(#london-dots)"/>
-        {/* London Eye */}
-        <circle cx="348" cy="72" r="58" fill="none" stroke="white" strokeWidth="3" strokeOpacity="0.22"/>
-        <circle cx="348" cy="72" r="10" fill="white" fillOpacity="0.22"/>
-        <line x1="348" y1="72" x2="348" y2="14" stroke="white" strokeWidth="1.5" strokeOpacity="0.18"/>
-        <line x1="348" y1="72" x2="348" y2="130" stroke="white" strokeWidth="1.5" strokeOpacity="0.18"/>
-        <line x1="348" y1="72" x2="290" y2="72" stroke="white" strokeWidth="1.5" strokeOpacity="0.18"/>
-        <line x1="348" y1="72" x2="406" y2="72" stroke="white" strokeWidth="1.5" strokeOpacity="0.18"/>
-        <line x1="348" y1="72" x2="307" y2="31" stroke="white" strokeWidth="1.5" strokeOpacity="0.18"/>
-        <line x1="348" y1="72" x2="389" y2="31" stroke="white" strokeWidth="1.5" strokeOpacity="0.18"/>
-        <line x1="348" y1="72" x2="307" y2="113" stroke="white" strokeWidth="1.5" strokeOpacity="0.18"/>
-        <line x1="348" y1="72" x2="389" y2="113" stroke="white" strokeWidth="1.5" strokeOpacity="0.18"/>
-        {/* Gondolas */}
-        <rect x="341" y="7" width="14" height="9" rx="3" fill="white" fillOpacity="0.28"/>
-        <rect x="341" y="126" width="14" height="9" rx="3" fill="white" fillOpacity="0.28"/>
-        <rect x="283" y="67" width="14" height="9" rx="3" fill="white" fillOpacity="0.28"/>
-        <rect x="399" y="67" width="14" height="9" rx="3" fill="white" fillOpacity="0.28"/>
-        {/* Support leg */}
-        <rect x="346" y="130" width="4" height="28" fill="white" fillOpacity="0.18"/>
-        <rect x="318" y="156" width="60" height="5" rx="2.5" fill="white" fillOpacity="0.18"/>
-        {/* Skyline silhouette */}
-        <g fill="white" fillOpacity="0.18">
-          <rect x="0" y="225" width="400" height="75"/>
-          <rect x="8" y="185" width="20" height="40"/>
-          <rect x="12" y="174" width="12" height="13"/>
-          <rect x="17" y="156" width="2" height="20"/>
-          <rect x="35" y="198" width="42" height="27"/>
-          <rect x="82" y="188" width="28" height="37"/>
-          <rect x="115" y="194" width="48" height="31"/>
-          <rect x="168" y="205" width="28" height="20"/>
-          <rect x="202" y="191" width="38" height="34"/>
-          <rect x="246" y="196" width="55" height="29"/>
-          <rect x="306" y="208" width="38" height="17"/>
-          <rect x="348" y="200" width="52" height="25"/>
-        </g>
-      </svg>
-    )
-  }
-  if (slug === 'birmingham') {
-    return (
-      <svg className="absolute inset-0 w-full h-full" viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
-        {/* Scattered 4-pointed stars */}
-        <g fill="white" fillOpacity="0.2">
-          <polygon points="50,28 53,20 56,28 64,31 56,34 53,42 50,34 42,31"/>
-          <polygon points="155,18 159,8 163,18 173,22 163,26 159,36 155,26 145,22"/>
-          <polygon points="38,130 41,123 44,130 51,133 44,136 41,143 38,136 31,133"/>
-          <polygon points="28,75 31,68 34,75 41,78 34,81 31,88 28,81 21,78"/>
-          <polygon points="200,12 204,2 208,12 218,16 208,20 204,30 200,20 190,16"/>
-          <polygon points="100,55 103,48 106,55 113,58 106,61 103,68 100,61 93,58"/>
-        </g>
-        {/* Confetti dots */}
-        <circle cx="130" cy="45" r="5" fill="white" fillOpacity="0.14"/>
-        <circle cx="250" cy="28" r="4" fill="white" fillOpacity="0.12"/>
-        <circle cx="30" cy="190" r="5" fill="white" fillOpacity="0.12"/>
-        <circle cx="180" cy="60" r="3" fill="white" fillOpacity="0.16"/>
-        <circle cx="70" cy="170" r="4" fill="white" fillOpacity="0.12"/>
-        {/* Ferris wheel */}
-        <circle cx="340" cy="78" r="62" fill="none" stroke="white" strokeWidth="3" strokeOpacity="0.22"/>
-        <circle cx="340" cy="78" r="12" fill="white" fillOpacity="0.22"/>
-        <line x1="340" y1="78" x2="340" y2="16" stroke="white" strokeWidth="2" strokeOpacity="0.18"/>
-        <line x1="340" y1="78" x2="340" y2="140" stroke="white" strokeWidth="2" strokeOpacity="0.18"/>
-        <line x1="340" y1="78" x2="278" y2="78" stroke="white" strokeWidth="2" strokeOpacity="0.18"/>
-        <line x1="340" y1="78" x2="402" y2="78" stroke="white" strokeWidth="2" strokeOpacity="0.18"/>
-        <line x1="340" y1="78" x2="296" y2="34" stroke="white" strokeWidth="2" strokeOpacity="0.18"/>
-        <line x1="340" y1="78" x2="384" y2="34" stroke="white" strokeWidth="2" strokeOpacity="0.18"/>
-        <line x1="340" y1="78" x2="296" y2="122" stroke="white" strokeWidth="2" strokeOpacity="0.18"/>
-        <line x1="340" y1="78" x2="384" y2="122" stroke="white" strokeWidth="2" strokeOpacity="0.18"/>
-        {/* Gondola cars */}
-        <rect x="333" y="8" width="14" height="10" rx="3" fill="white" fillOpacity="0.3"/>
-        <rect x="333" y="133" width="14" height="10" rx="3" fill="white" fillOpacity="0.3"/>
-        <rect x="270" y="73" width="14" height="10" rx="3" fill="white" fillOpacity="0.3"/>
-        <rect x="396" y="73" width="14" height="10" rx="3" fill="white" fillOpacity="0.3"/>
-        <rect x="289" y="27" width="14" height="10" rx="3" fill="white" fillOpacity="0.25"/>
-        <rect x="377" y="27" width="14" height="10" rx="3" fill="white" fillOpacity="0.25"/>
-        <rect x="289" y="116" width="14" height="10" rx="3" fill="white" fillOpacity="0.25"/>
-        <rect x="377" y="116" width="14" height="10" rx="3" fill="white" fillOpacity="0.25"/>
-        {/* Support */}
-        <rect x="338" y="140" width="4" height="30" fill="white" fillOpacity="0.18"/>
-        <rect x="310" y="168" width="60" height="6" rx="3" fill="white" fillOpacity="0.18"/>
-      </svg>
-    )
-  }
-  // Manchester
-  return (
-    <svg className="absolute inset-0 w-full h-full" viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
-      {/* Scattered dots background */}
-      <defs>
-        <pattern id="mcr-dots" x="0" y="0" width="28" height="28" patternUnits="userSpaceOnUse">
-          <circle cx="14" cy="14" r="2.5" fill="white" fillOpacity="0.15"/>
-        </pattern>
-      </defs>
-      <rect width="400" height="300" fill="url(#mcr-dots)"/>
-      {/* Sun */}
-      <circle cx="342" cy="68" r="44" fill="white" fillOpacity="0.2"/>
-      {/* Sun rays */}
-      <g stroke="white" strokeOpacity="0.18" strokeLinecap="round">
-        <line x1="342" y1="12" x2="342" y2="0" strokeWidth="4"/>
-        <line x1="342" y1="124" x2="342" y2="136" strokeWidth="4"/>
-        <line x1="286" y1="68" x2="274" y2="68" strokeWidth="4"/>
-        <line x1="398" y1="68" x2="410" y2="68" strokeWidth="4"/>
-        <line x1="302" y1="28" x2="294" y2="20" strokeWidth="3.5"/>
-        <line x1="382" y1="28" x2="390" y2="20" strokeWidth="3.5"/>
-        <line x1="302" y1="108" x2="294" y2="116" strokeWidth="3.5"/>
-        <line x1="382" y1="108" x2="390" y2="116" strokeWidth="3.5"/>
-      </g>
-      {/* Stars scattered around */}
-      <g fill="white" fillOpacity="0.2">
-        <polygon points="58,38 61,28 64,38 74,41 64,44 61,54 58,44 48,41"/>
-        <polygon points="162,22 166,12 170,22 180,25 170,28 166,38 162,28 152,25"/>
-        <polygon points="48,148 51,141 54,148 61,151 54,154 51,161 48,154 41,151"/>
-        <polygon points="25,85 28,78 31,85 38,88 31,91 28,98 25,91 18,88"/>
-        <polygon points="110,42 113,35 116,42 123,45 116,48 113,55 110,48 103,45"/>
-      </g>
-      {/* Wave / undulation at bottom */}
-      <path d="M0,252 Q50,238 100,252 T200,252 T300,252 T400,252 L400,300 L0,300 Z" fill="white" fillOpacity="0.14"/>
-      <path d="M0,268 Q50,254 100,268 T200,268 T300,268 T400,268 L400,300 L0,300 Z" fill="white" fillOpacity="0.1"/>
-    </svg>
-  )
-}
 
 const GUIDE_CARDS = [
   {
@@ -332,29 +207,45 @@ export default async function HomePage() {
             <Link
               key={city.slug}
               href={`/${city.slug}`}
-              className="group relative overflow-hidden rounded-3xl aspect-[4/3] flex flex-col justify-end shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-[1.03]"
-              style={{ background: city.gradient }}
+              className="group relative overflow-hidden rounded-3xl flex flex-col justify-end shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-[1.05]"
+              style={{ background: city.gradient, minHeight: '300px' }}
             >
-              {/* SVG background art */}
-              <CityCardBg slug={city.slug} />
+              {/* Scattered floating emoji */}
+              <div className="absolute inset-0 select-none pointer-events-none overflow-hidden">
+                <span className="absolute top-4 left-5 text-2xl opacity-50">{city.scatter[0]}</span>
+                <span className="absolute top-16 left-[22%] text-xl opacity-40">{city.scatter[1]}</span>
+                <span className="absolute top-3 left-[44%] text-2xl opacity-45">{city.scatter[2]}</span>
+                <span className="absolute top-24 left-[12%] text-lg opacity-35">{city.scatter[3]}</span>
+                <span className="absolute top-10 left-[60%] text-xl opacity-35">{city.scatter[4]}</span>
+                <span className="absolute top-28 left-[48%] text-lg opacity-30">{city.scatter[5]}</span>
+              </div>
 
-              {/* Gradient fade to make text legible */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"/>
+              {/* Big hero emoji — top right */}
+              <div
+                className="absolute top-4 right-5 select-none drop-shadow-xl leading-none"
+                style={{ fontSize: '84px' }}
+              >
+                {city.emoji}
+              </div>
 
-              <div className="relative z-10 p-6 pt-0">
-                <p className="text-white/80 text-sm font-semibold mb-1 drop-shadow">
+              {/* Soft gradient fade at bottom for legibility */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-transparent pointer-events-none"/>
+
+              {/* Card content */}
+              <div className="relative z-10 p-7">
+                <p className="text-white/85 text-sm font-bold mb-2 drop-shadow">
                   {counts[city.slug] ?? 0} venues
                 </p>
-                <h3 className="text-white text-4xl font-black tracking-tight mb-3 drop-shadow-md">
+                <h3 className="text-white font-black tracking-tight leading-none mb-4 drop-shadow-lg" style={{ fontSize: '2.8rem' }}>
                   {city.name}
                 </h3>
 
-                {/* Area tags — white bg, coloured text */}
+                {/* Area tags — bright white pills */}
                 <div className="flex flex-wrap gap-2 mb-5">
                   {city.areas.map((area) => (
                     <span
                       key={area}
-                      className="bg-white text-xs font-bold px-3 py-1.5 rounded-full shadow-sm"
+                      className="bg-white text-xs font-extrabold px-4 py-2 rounded-full shadow-md"
                       style={{ color: city.colour }}
                     >
                       {area}
@@ -362,10 +253,13 @@ export default async function HomePage() {
                   ))}
                 </div>
 
-                <div className="inline-flex items-center gap-2 bg-white/25 hover:bg-white/35 backdrop-blur-sm text-white font-bold text-sm px-4 py-2.5 rounded-full transition-all group-hover:gap-3 shadow-sm">
-                  <span>{city.emoji}</span>
-                  <span>Explore {city.name}</span>
-                  <span className="transition-transform group-hover:translate-x-0.5">→</span>
+                {/* Bright white Explore button */}
+                <div
+                  className="inline-flex items-center gap-2 bg-white font-extrabold text-sm px-5 py-3 rounded-full shadow-lg group-hover:shadow-xl transition-all group-hover:gap-3"
+                  style={{ color: city.colour }}
+                >
+                  Explore {city.name}
+                  <span className="transition-transform group-hover:translate-x-1">→</span>
                 </div>
               </div>
             </Link>
