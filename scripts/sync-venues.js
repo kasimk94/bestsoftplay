@@ -592,10 +592,10 @@ async function syncCity(citySlug) {
   let skipped = 0
   let processed = 0
 
-  // Reconnect every 40 venues to prevent P1017 connection drops on long runs
+  // Reconnect every 20 venues to prevent P1017 connection drops on long runs
   async function maybeReconnect() {
     processed++
-    if (processed % 40 === 0) {
+    if (processed % 20 === 0) {
       console.log(`  🔄 Refreshing DB connection (${processed} processed)...`)
       await prisma.$disconnect()
       await prisma.$connect()
