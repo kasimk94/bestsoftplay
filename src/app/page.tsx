@@ -39,14 +39,14 @@ const CITY_CARDS = [
     name: 'Birmingham',
     slug: 'birmingham',
     colour: '#D85A30',
-    emoji: '🏭',
+    emoji: '🎠',
     areas: ['City Centre', 'Solihull', 'Sutton Coldfield'],
   },
   {
     name: 'Manchester',
     slug: 'manchester',
     colour: '#1D9E75',
-    emoji: '🌧️',
+    emoji: '⭐',
     areas: ['City Centre', 'Salford', 'Trafford', 'Stockport'],
   },
 ]
@@ -127,7 +127,6 @@ export default async function HomePage() {
 
   const STATS = [
     { value: total > 0 ? `${total}` : '600+', label: 'Venues listed' },
-    { value: '3', label: 'Cities covered' },
     { value: '★ 4.5', label: 'Avg Google rating' },
     { value: 'Free', label: 'Always free to use' },
   ]
@@ -142,7 +141,7 @@ export default async function HomePage() {
         <div className="relative z-10 max-w-4xl mx-auto text-center">
           <div className="inline-flex items-center gap-2 bg-white border border-[#E9E8F7] text-[#7F77DD] text-sm font-semibold px-4 py-2 rounded-full mb-6 shadow-sm">
             <span>🇬🇧</span>
-            <span>UK&apos;s most trusted soft play directory</span>
+            <span>UK&apos;s largest soft play directory</span>
           </div>
 
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-gray-900 tracking-tight leading-tight mb-4">
@@ -177,7 +176,7 @@ export default async function HomePage() {
 
       {/* Stats bar */}
       <section className="bg-[#7F77DD] py-6">
-        <div className="max-w-5xl mx-auto px-4 grid grid-cols-2 md:grid-cols-4 gap-6 text-center text-white">
+        <div className="max-w-5xl mx-auto px-4 grid grid-cols-3 gap-6 text-center text-white">
           {STATS.map((s) => (
             <div key={s.label}>
               <div className="text-3xl font-extrabold">{s.value}</div>
