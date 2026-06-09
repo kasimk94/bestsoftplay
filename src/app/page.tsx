@@ -220,7 +220,17 @@ export default async function HomePage() {
       </section>
 
       {/* Browse by city */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-10">
+      <section className="relative pt-16 pb-12 overflow-hidden" style={{ background: '#F3F1FF' }}>
+        {/* Subtle scattered sparkles */}
+        <div className="absolute inset-0 pointer-events-none select-none overflow-hidden">
+          <span className="absolute top-6  left-[3%]  text-xl opacity-[0.12]">✦</span>
+          <span className="absolute top-14 left-[12%] text-lg opacity-[0.10]">⭐</span>
+          <span className="absolute top-8  right-[5%] text-2xl opacity-[0.12]">✶</span>
+          <span className="absolute top-20 right-[14%] text-lg opacity-[0.10]">✨</span>
+          <span className="absolute bottom-8  left-[7%]  text-lg opacity-[0.10]">✦</span>
+          <span className="absolute bottom-10 right-[9%] text-xl opacity-[0.12]">✶</span>
+        </div>
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-end justify-between mb-8">
           <div>
             <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight">Browse by city</h2>
@@ -291,11 +301,21 @@ export default async function HomePage() {
             </Link>
           ))}
         </div>
+        </div>{/* /max-w-7xl */}
       </section>
 
       {/* Top rated venues */}
-      <section className="bg-gray-50 py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="relative py-16 overflow-hidden" style={{ background: '#EBE8FF' }}>
+        {/* Subtle scattered sparkles */}
+        <div className="absolute inset-0 pointer-events-none select-none overflow-hidden">
+          <span className="absolute top-5   left-[6%]   text-2xl opacity-[0.12]">⭐</span>
+          <span className="absolute top-16  left-[20%]  text-lg  opacity-[0.09]">✦</span>
+          <span className="absolute top-8   right-[8%]  text-xl  opacity-[0.12]">✨</span>
+          <span className="absolute top-20  right-[22%] text-lg  opacity-[0.09]">✶</span>
+          <span className="absolute bottom-6  left-[10%]  text-xl  opacity-[0.10]">✶</span>
+          <span className="absolute bottom-8  right-[6%]  text-2xl opacity-[0.12]">⭐</span>
+        </div>
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-end justify-between mb-8">
             <div>
               <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight">Top rated venues</h2>
@@ -316,7 +336,7 @@ export default async function HomePage() {
               ))}
             </div>
           )}
-        </div>
+        </div>{/* /max-w-7xl */}
       </section>
 
       {/* Parent guides */}
