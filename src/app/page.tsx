@@ -61,31 +61,47 @@ const CITY_CARDS = [
 const GUIDE_CARDS = [
   {
     icon: '🗺️',
-    bg: '#ede9fe',
+    bg: '#FF6B6B',
+    textColour: '#7F1D1D',
+    accentColour: '#DC2626',
+    badge: '📍 18 venues',
     title: 'Best Soft Plays in South London',
     slug: 'best-soft-plays-south-london',
     desc: '18 venues reviewed and ranked',
+    rotate: '-rotate-1',
   },
   {
     icon: '👶',
-    bg: '#ffedd5',
+    bg: '#FFD93D',
+    textColour: '#713F12',
+    accentColour: '#B45309',
+    badge: '⭐ Parent favourite',
     title: 'Best for Toddlers in London',
     slug: 'best-soft-plays-toddlers-london',
     desc: 'Under 2s welcome – our picks',
+    rotate: 'rotate-1',
   },
   {
     icon: '🏙️',
-    bg: '#ccfbf1',
+    bg: '#4ECDC4',
+    textColour: '#134E4A',
+    accentColour: '#0F766E',
+    badge: '🏆 Top rated',
     title: 'Best Soft Plays in Birmingham',
     slug: 'best-soft-plays-birmingham',
     desc: 'Top venues across the city',
+    rotate: '-rotate-1',
   },
   {
     icon: '☔',
-    bg: '#fef3c7',
+    bg: '#A78BFA',
+    textColour: '#2E1065',
+    accentColour: '#7C3AED',
+    badge: '🌧️ Rain-day essential',
     title: 'Best Soft Plays in Manchester',
     slug: 'best-soft-plays-manchester',
     desc: 'Rain-proof family fun',
+    rotate: 'rotate-1',
   },
 ]
 
@@ -294,36 +310,81 @@ export default async function HomePage() {
       </section>
 
       {/* Parent guides */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-4">
-        <div className="flex items-end justify-between mb-8">
-          <div>
-            <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight">Parent guides</h2>
-            <p className="text-gray-500 mt-1">Expert advice to find the best soft play for your family</p>
-          </div>
-          <Link href="/guides" className="text-[#7F77DD] font-semibold text-sm hover:underline hidden sm:block">
-            All guides →
-          </Link>
+      <section className="bg-[#FFF9F0] py-16 px-4 relative overflow-hidden">
+        {/* Decorative confetti dots */}
+        <div className="absolute inset-0 pointer-events-none select-none overflow-hidden">
+          <span className="absolute top-6 left-[8%] text-2xl opacity-30">✦</span>
+          <span className="absolute top-12 left-[18%] text-lg opacity-25">✶</span>
+          <span className="absolute top-4 left-[35%] text-xl opacity-20">✦</span>
+          <span className="absolute top-8 right-[30%] text-2xl opacity-25">✶</span>
+          <span className="absolute top-5 right-[15%] text-lg opacity-30">✦</span>
+          <span className="absolute top-14 right-[5%] text-xl opacity-20">✶</span>
+          <span className="absolute bottom-8 left-[5%] text-xl opacity-20">✦</span>
+          <span className="absolute bottom-6 left-[25%] text-2xl opacity-15">✶</span>
+          <span className="absolute bottom-10 right-[20%] text-lg opacity-20">✦</span>
+          <span className="absolute bottom-4 right-[8%] text-2xl opacity-25">✶</span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          {GUIDE_CARDS.map((guide) => (
-            <Link
-              key={guide.slug}
-              href={`/guides/${guide.slug}`}
-              className="group bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow duration-200"
-            >
-              <div
-                className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl mb-4"
+        <div className="max-w-7xl mx-auto relative z-10">
+          <div className="flex items-end justify-between mb-10">
+            <div>
+              <div className="flex items-center gap-3 mb-2">
+                <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight">Parent guides</h2>
+                <span className="text-2xl">📚</span>
+              </div>
+              <p className="text-gray-500">Expert advice to find the best soft play for your family</p>
+            </div>
+            <Link href="/guides" className="text-[#7F77DD] font-semibold text-sm hover:underline hidden sm:block">
+              All guides →
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {GUIDE_CARDS.map((guide) => (
+              <Link
+                key={guide.slug}
+                href={`/guides/${guide.slug}`}
+                className={`group rounded-3xl p-7 shadow-lg hover:shadow-xl transition-all duration-300 ${guide.rotate} hover:rotate-0 hover:scale-[1.03] flex flex-col`}
                 style={{ backgroundColor: guide.bg }}
               >
-                {guide.icon}
-              </div>
-              <h3 className="font-bold text-gray-900 text-base leading-snug group-hover:text-[#7F77DD] transition-colors mb-1.5">
-                {guide.title}
-              </h3>
-              <p className="text-sm text-gray-500">{guide.desc}</p>
-            </Link>
-          ))}
+                {/* Badge */}
+                <div
+                  className="inline-flex items-center text-xs font-bold px-3 py-1.5 rounded-full mb-5 self-start shadow-sm"
+                  style={{ backgroundColor: 'rgba(0,0,0,0.12)', color: guide.textColour }}
+                >
+                  {guide.badge}
+                </div>
+
+                {/* Big floating emoji */}
+                <div className="text-[64px] leading-none mb-5 select-none">
+                  {guide.icon}
+                </div>
+
+                {/* Text */}
+                <h3
+                  className="font-black text-lg leading-snug mb-2"
+                  style={{ color: guide.textColour }}
+                >
+                  {guide.title}
+                </h3>
+                <p
+                  className="text-sm leading-relaxed flex-1 mb-5"
+                  style={{ color: guide.textColour, opacity: 0.75 }}
+                >
+                  {guide.desc}
+                </p>
+
+                {/* Read guide link */}
+                <div
+                  className="inline-flex items-center gap-1.5 text-sm font-extrabold group-hover:gap-2.5 transition-all"
+                  style={{ color: guide.accentColour }}
+                >
+                  Read guide
+                  <span className="transition-transform group-hover:translate-x-1">→</span>
+                </div>
+              </Link>
+            ))}
+          </div>
         </div>
       </section>
 
