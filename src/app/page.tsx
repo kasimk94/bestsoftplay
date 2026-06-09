@@ -60,14 +60,14 @@ const CITY_CARDS = [
 
 const GUIDE_CARDS = [
   {
-    icon: '📍',
+    icon: '🗺️',
     bg: '#ede9fe',
     title: 'Best Soft Plays in South London',
     slug: 'best-soft-plays-south-london',
     desc: '18 venues reviewed and ranked',
   },
   {
-    icon: '🍼',
+    icon: '👶',
     bg: '#ffedd5',
     title: 'Best for Toddlers in London',
     slug: 'best-soft-plays-toddlers-london',
@@ -81,7 +81,7 @@ const GUIDE_CARDS = [
     desc: 'Top venues across the city',
   },
   {
-    icon: '☕',
+    icon: '☔',
     bg: '#fef3c7',
     title: 'Best Soft Plays in Manchester',
     slug: 'best-soft-plays-manchester',
@@ -113,13 +113,13 @@ async function getFeaturedVenues() {
   try {
     return await prisma.venue.findMany({
       where: {
-        city: { slug: 'london' },
-        googleRating: { gte: 4.0 },
-        photoReference: { not: null },
+        googleRating: { gte: 4.5 },
+        googleReviewCount: { gte: 50 },
+        photoUrl: { not: null },
       },
       include: { city: true, area: true },
-      orderBy: { googleRating: 'desc' },
-      take: 4,
+      orderBy: [{ googleRating: 'desc' }, { googleReviewCount: 'desc' }],
+      take: 8,
     })
   } catch {
     return []
@@ -267,33 +267,14 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Top rated in London */}
+      {/* Top rated venues */}
       <section className="bg-gray-50 py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-end justify-between mb-8">
             <div>
-              <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight">Top rated in London</h2>
-              <p className="text-gray-500 mt-1">Highest-rated venues by Google reviews</p>
+              <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight">Top rated venues</h2>
+              <p className="text-gray-500 mt-1">Highest-rated across London, Birmingham &amp; Manchester</p>
             </div>
-            <Link href="/london" className="text-[#7F77DD] font-semibold text-sm hover:underline hidden sm:block">
-              View all London venues →
-            </Link>
-          </div>
-
-          {/* Filter row */}
-          <div className="flex gap-2 mb-8 overflow-x-auto pb-2">
-            {['All venues', 'Under 2s', '2–5 years', '5–12 years', 'With café', 'Free parking'].map((f, i) => (
-              <button
-                key={f}
-                className={`whitespace-nowrap text-sm font-medium px-4 py-2 rounded-full border transition-colors ${
-                  i === 0
-                    ? 'bg-[#7F77DD] text-white border-[#7F77DD]'
-                    : 'bg-white text-gray-600 border-gray-200 hover:border-[#7F77DD] hover:text-[#7F77DD]'
-                }`}
-              >
-                {f}
-              </button>
-            ))}
           </div>
 
           {featuredVenues.length > 0 ? (
@@ -303,19 +284,12 @@ export default async function HomePage() {
               ))}
             </div>
           ) : (
-            /* Placeholder cards when DB is empty */
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
               {PLACEHOLDER_VENUES.map((venue, i) => (
                 <VenueCard key={venue.slug} venue={venue} index={i} />
               ))}
             </div>
           )}
-
-          <div className="mt-8 text-center sm:hidden">
-            <Link href="/london" className="text-[#7F77DD] font-semibold text-sm hover:underline">
-              View all London venues →
-            </Link>
-          </div>
         </div>
       </section>
 
