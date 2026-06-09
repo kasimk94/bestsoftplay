@@ -12,32 +12,42 @@ export default function AnimatedWord() {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      // Fade out + slide up
       setVisible(false)
-
       const swap = setTimeout(() => {
         setIndex(i => (i + 1) % WORDS.length)
-        // Fade in
         setVisible(true)
       }, FADE_MS)
-
       return () => clearTimeout(swap)
     }, DISPLAY_MS)
-
     return () => clearInterval(interval)
   }, [])
 
   return (
     <span
       style={{
-        color: '#7F77DD',
         display: 'inline-block',
+        position: 'relative',
         opacity: visible ? 1 : 0,
         transform: visible ? 'translateY(0px)' : 'translateY(-10px)',
         transition: `opacity ${FADE_MS}ms ease, transform ${FADE_MS}ms ease`,
       }}
     >
-      {WORDS[index]}
+      {/* Yellow marker highlight behind the text */}
+      <span
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          inset: '-4px -10px -2px -10px',
+          background: 'linear-gradient(104deg, transparent 1%, #FFE066 2%, #FFE066 97%, transparent 98%)',
+          borderRadius: '4px',
+          transform: 'rotate(-1deg) skewX(-2deg)',
+          zIndex: 0,
+          opacity: 0.75,
+        }}
+      />
+      <span style={{ position: 'relative', zIndex: 1, color: '#7F77DD' }}>
+        {WORDS[index]}
+      </span>
     </span>
   )
 }

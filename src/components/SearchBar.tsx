@@ -39,14 +39,14 @@ export default function SearchBar() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Postcode or venue name..."
-            className="w-full pl-12 pr-4 py-4 rounded-2xl border border-gray-200 bg-white text-gray-900 placeholder-gray-400 text-base focus:outline-none focus:ring-2 focus:ring-[#7F77DD] focus:border-transparent shadow-sm"
+            className="w-full pl-12 pr-4 py-4 rounded-2xl border border-gray-100 bg-white text-gray-900 placeholder-gray-400 text-base focus:outline-none focus:ring-2 focus:ring-[#7F77DD] focus:border-transparent shadow-[0_4px_24px_rgba(127,119,221,0.18)]"
           />
         </div>
         <div className="flex gap-2">
           <button
             type="button"
             onClick={handleLocation}
-            className="flex items-center gap-2 px-4 py-4 rounded-2xl border border-gray-200 bg-white text-gray-700 text-sm font-medium hover:bg-gray-50 transition-colors shadow-sm whitespace-nowrap"
+            className="flex items-center gap-2 px-4 py-4 rounded-2xl border border-gray-100 bg-white text-gray-700 text-sm font-medium hover:bg-gray-50 transition-colors shadow-[0_4px_24px_rgba(127,119,221,0.18)] whitespace-nowrap"
           >
             <svg className="w-4 h-4 text-[#7F77DD]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />

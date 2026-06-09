@@ -17,14 +17,14 @@ export const metadata: Metadata = {
 }
 
 const QUICK_FILTERS = [
-  { label: 'Most popular', icon: '🔥' },
-  { label: 'Under 2s', icon: '👶' },
-  { label: '2–5 years', icon: '🧒' },
-  { label: '5–12 years', icon: '🧑' },
-  { label: 'Good café', icon: '☕' },
-  { label: 'Free parking', icon: '🅿️' },
-  { label: 'Party rooms', icon: '🎂' },
-  { label: 'Open Sundays', icon: '📅' },
+  { label: 'Most popular', icon: '🔥', bg: '#FFE4E1', text: '#9F1239', hover: '#FECACA' },
+  { label: 'Under 2s',     icon: '👶', bg: '#FEF3C7', text: '#92400E', hover: '#FDE68A' },
+  { label: '2–5 years',    icon: '🧒', bg: '#E0F2FE', text: '#075985', hover: '#BAE6FD' },
+  { label: '5–12 years',   icon: '🧑', bg: '#D1FAE5', text: '#065F46', hover: '#A7F3D0' },
+  { label: 'Good café',    icon: '☕', bg: '#FEF9C3', text: '#713F12', hover: '#FEF08A' },
+  { label: 'Free parking', icon: '🅿️', bg: '#EDE9FE', text: '#4C1D95', hover: '#DDD6FE' },
+  { label: 'Party rooms',  icon: '🎂', bg: '#FCE7F3', text: '#831843', hover: '#FBCFE8' },
+  { label: 'Open Sundays', icon: '📅', bg: '#CCFBF1', text: '#134E4A', hover: '#99F6E4' },
 ]
 
 const CITY_CARDS = [
@@ -159,7 +159,7 @@ export default async function HomePage() {
       <Navbar />
 
       {/* Hero */}
-      <section className="relative bg-gradient-to-b from-[#F4F3FB] to-white pt-16 pb-12 px-4 overflow-hidden">
+      <section className="relative pt-16 pb-10 px-4 overflow-hidden" style={{ background: 'linear-gradient(160deg, #EDE9FF 0%, #F5EEFF 40%, #FFF0E8 100%)' }}>
         <FloatingEmojis />
         <div className="relative z-10 max-w-4xl mx-auto text-center">
           <div className="inline-flex items-center gap-2 bg-white border border-[#E9E8F7] text-[#7F77DD] text-sm font-semibold px-4 py-2 rounded-full mb-6 shadow-sm">
@@ -183,16 +183,26 @@ export default async function HomePage() {
           </div>
 
           {/* Quick filters */}
-          <div className="flex flex-wrap justify-center gap-2">
+          <div className="flex flex-wrap justify-center gap-2 mb-10">
             {QUICK_FILTERS.map((f) => (
               <button
                 key={f.label}
-                className="inline-flex items-center gap-1.5 bg-white border border-gray-200 text-gray-700 text-sm font-medium px-3.5 py-2 rounded-full hover:border-[#7F77DD] hover:text-[#7F77DD] transition-colors shadow-sm"
+                className="inline-flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-full shadow-sm transition-all hover:scale-105 hover:shadow-md"
+                style={{ backgroundColor: f.bg, color: f.text, border: `1.5px solid ${f.bg}` }}
               >
                 <span>{f.icon}</span>
                 {f.label}
               </button>
             ))}
+          </div>
+
+          {/* Scroll indicator */}
+          <div className="flex justify-center">
+            <div className="animate-bounce flex flex-col items-center gap-1 opacity-50">
+              <svg className="w-6 h-6 text-[#7F77DD]" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
           </div>
         </div>
       </section>
