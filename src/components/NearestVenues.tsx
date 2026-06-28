@@ -36,12 +36,29 @@ function haversine(lat1: number, lng1: number, lat2: number, lng2: number): numb
 
 const CARD_COLORS = ['#7F77DD', '#1D9E75', '#D85A30', '#F59E0B']
 
+function SkeletonCard() {
+  return (
+    <div className="bg-white rounded-3xl overflow-hidden shadow-sm border border-gray-100">
+      {/* Photo area skeleton */}
+      <div className="h-[200px] bg-gray-200 animate-pulse" />
+      {/* Footer skeleton */}
+      <div className="px-4 py-3 space-y-2">
+        <div className="h-3 bg-gray-200 rounded-full w-2/3 animate-pulse" />
+        <div className="h-3 bg-gray-200 rounded-full w-1/2 animate-pulse" />
+      </div>
+    </div>
+  )
+}
+
 export default function NearestVenues({ venues }: { venues: Venue[]; citySlug: string }) {
   const [nearest, setNearest] = useState<(Venue & { distance: number })[] | null>(null)
   const [status, setStatus] = useState<'loading' | 'done' | 'hidden'>('loading')
 
   useEffect(() => {
-    if (!navigator.geolocation) { setStatus('hidden'); return }
+    if (!navigator.geolocation) {
+      setStatus('hidden')
+      return
+    }
 
     navigator.geolocation.getCurrentPosition(
       (pos) => {
@@ -52,7 +69,10 @@ export default function NearestVenues({ venues }: { venues: Venue[]; citySlug: s
           .sort((a, b) => a.distance - b.distance)
           .slice(0, 4)
 
-        if (results.length === 0) { setStatus('hidden'); return }
+        if (results.length === 0) {
+          setStatus('hidden')
+          return
+        }
         setNearest(results)
         setStatus('done')
       },
@@ -62,19 +82,8 @@ export default function NearestVenues({ venues }: { venues: Venue[]; citySlug: s
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Loading: slim strip so the page doesn't jump when results appear
-  if (status === 'loading') {
-    return (
-      <div className="px-4 pt-6 pb-2" style={{ background: '#F3F1FF' }}>
-        <div className="max-w-7xl mx-auto flex items-center gap-2 text-sm text-gray-400">
-          <div className="w-3.5 h-3.5 border-2 border-[#7F77DD] border-t-transparent rounded-full animate-spin flex-shrink-0" />
-          Finding soft plays near you…
-        </div>
-      </div>
-    )
-  }
-
-  if (status === 'hidden' || !nearest) return null
+  // Denied or unavailable — vanish so the page flows hero → Browse by age
+  if (status === 'hidden') return null
 
   return (
     <section className="py-14 px-4" style={{ background: '#F3F1FF' }}>
@@ -83,12 +92,19 @@ export default function NearestVenues({ venues }: { venues: Venue[]; citySlug: s
           <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight">Closest to you</h2>
           <span className="text-2xl">📍</span>
         </div>
-        <p className="text-gray-500 mb-8">Soft plays nearest to your current location</p>
+        <p className="text-gray-500 mb-8">Soft play venues near your current location</p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          {nearest.map((venue, i) => {
+          {status === 'loading' && [0, 1, 2, 3].map((i) => <SkeletonCard key={i} />)}
+
+          {status === 'done' && nearest && nearest.map((venue, i) => {
             const href = `/${venue.city.slug}/${venue.area.slug}/${venue.slug}`
             const color = CARD_COLORS[i % CARD_COLORS.length]
+            const distLabel =
+              venue.distance < 0.1
+                ? '< 0.1 miles away'
+                : `${venue.distance.toFixed(1)} miles away`
+
             return (
               <Link
                 key={venue.id}
@@ -103,21 +119,28 @@ export default function NearestVenues({ venues }: { venues: Venue[]; citySlug: s
                     fallbackColor={color}
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+                  {/* Distance badge */}
                   <div className="absolute top-3 right-3 z-10 bg-white/90 backdrop-blur-sm text-gray-900 text-xs font-bold px-2.5 py-1.5 rounded-full shadow-sm">
-                    {venue.distance < 0.1 ? '< 0.1 mi' : `${venue.distance.toFixed(1)} mi`}
+                    {distLabel}
                   </div>
                   <div className="absolute bottom-0 left-0 right-0 px-4 pb-3 z-10">
-                    <h3 className="font-bold text-white text-base leading-tight line-clamp-2">{venue.name}</h3>
+                    <h3 className="font-bold text-white text-base leading-tight line-clamp-2">
+                      {venue.name}
+                    </h3>
                   </div>
                 </div>
                 <div className="px-4 py-3">
                   <p className="text-xs text-gray-500 mb-1.5 line-clamp-1">{venue.area.name}</p>
                   {venue.googleRating ? (
                     <div className="flex items-center gap-1.5">
-                      <span className="text-amber-400 text-sm">★</span>
-                      <span className="text-sm font-bold text-gray-900">{venue.googleRating.toFixed(1)}</span>
+                      <span className="text-amber-400 text-sm leading-none">★</span>
+                      <span className="text-sm font-bold text-gray-900">
+                        {venue.googleRating.toFixed(1)}
+                      </span>
                       {venue.googleReviewCount && (
-                        <span className="text-xs text-gray-400">({venue.googleReviewCount.toLocaleString()})</span>
+                        <span className="text-xs text-gray-400">
+                          ({venue.googleReviewCount.toLocaleString()} reviews)
+                        </span>
                       )}
                     </div>
                   ) : (
