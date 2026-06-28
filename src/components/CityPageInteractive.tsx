@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import Link from 'next/link'
 import VenuePhoto from './VenuePhoto'
 import { useCityLocation } from './CityLocationContext'
@@ -121,11 +121,18 @@ export default function CityPageInteractive({
   venues: Venue[]
   city: { slug: string; name: string; colour: string }
 }) {
-  const { userLocation } = useCityLocation()
+  const { userLocation, nearestSortTrigger } = useCityLocation()
   const [ageFilter, setAgeFilter] = useState<string | null>(null)
   const [catFilter, setCatFilter] = useState<string | null>(null)
   const [sort, setSort] = useState<Sort>('rating')
   const [page, setPage] = useState(1)
+
+  useEffect(() => {
+    if (nearestSortTrigger > 0) {
+      setSort('distance')
+      setPage(1)
+    }
+  }, [nearestSortTrigger])
 
   const venuesWithDistance = useMemo(() => {
     if (!userLocation) return venues.map((v) => ({ ...v, distance: undefined as number | undefined }))

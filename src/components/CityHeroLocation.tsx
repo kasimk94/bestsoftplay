@@ -2,7 +2,9 @@
 
 import { useState } from 'react'
 import dynamic from 'next/dynamic'
+import Link from 'next/link'
 import SearchBar from './SearchBar'
+import VenuePhoto from './VenuePhoto'
 import { useCityLocation } from './CityLocationContext'
 import NearbyMapModal, { type NearbyVenue } from './NearbyMapModal'
 
@@ -39,6 +41,45 @@ function haversine(lat1: number, lng1: number, lat2: number, lng2: number): numb
 
 const RADIUS = 5
 const MAX_INLINE_PINS = 8
+const CARD_COLORS = ['#7F77DD', '#1D9E75', '#D85A30', '#F59E0B']
+
+function ClosestVenueCard({ venue, index }: { venue: NearbyVenue; index: number }) {
+  const href = `/${venue.city.slug}/${venue.area.slug}/${venue.slug}`
+  const color = CARD_COLORS[index % CARD_COLORS.length]
+  const distLabel = venue.distance < 0.1 ? '< 0.1 mi' : `${venue.distance.toFixed(1)} mi`
+
+  return (
+    <Link
+      href={href}
+      className="flex-none w-40 bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-[1.02] block text-left"
+    >
+      <div className="relative h-[100px] overflow-hidden" style={{ backgroundColor: color }}>
+        <VenuePhoto
+          directUrls={[venue.photoUrl, venue.photoUrl2, venue.photoUrl3]}
+          photoReference={venue.photoReference}
+          name={venue.name}
+          fallbackColor={color}
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+        <span className="absolute bottom-2 right-2 bg-black/50 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+          📍 {distLabel}
+        </span>
+      </div>
+      <div className="px-2.5 py-2">
+        <p className="font-bold text-gray-900 text-xs leading-tight line-clamp-2 mb-1">{venue.name}</p>
+        <p className="text-[10px] text-gray-400 truncate mb-1">{venue.area.name}</p>
+        {venue.googleRating ? (
+          <div className="flex items-center gap-0.5">
+            <span className="text-amber-400 text-xs">★</span>
+            <span className="text-xs font-semibold text-gray-700">{venue.googleRating.toFixed(1)}</span>
+          </div>
+        ) : (
+          <div className="h-4" />
+        )}
+      </div>
+    </Link>
+  )
+}
 
 export default function CityHeroLocation({
   venues,
@@ -49,7 +90,7 @@ export default function CityHeroLocation({
   totalCount: number
   cityName: string
 }) {
-  const { setUserLocation } = useCityLocation()
+  const { setUserLocation, triggerNearestSort } = useCityLocation()
   const [nearbyVenues, setNearbyVenues] = useState<NearbyVenue[]>([])
   const [userLocation, setLocalUserLocation] = useState<{ lat: number; lng: number } | null>(null)
   const [caption, setCaption] = useState<string | null>(null)
@@ -81,8 +122,12 @@ export default function CityHeroLocation({
     }
   }
 
+  const handleViewAll = () => {
+    triggerNearestSort()
+    document.getElementById('venue-grid')?.scrollIntoView({ behavior: 'smooth' })
+  }
+
   const nearbyCount = nearbyVenues.length
-  // Closest N for the inline map; all nearby go to the full-screen modal
   const closestVenues = nearbyVenues.slice(0, MAX_INLINE_PINS)
 
   const subtitle =
@@ -108,18 +153,18 @@ export default function CityHeroLocation({
 
       {showMap && (
         <div className="mt-5">
+          {/* Caption */}
           <p className="text-white/70 text-sm mb-2 flex items-center justify-center gap-1.5">
             <span>📍</span>
             {caption}
           </p>
-          {/* Inline map — only closest pins so the view is tight and clean */}
+
+          {/* Compact inline map */}
           <div
             className="relative rounded-2xl overflow-hidden border border-white/20 shadow-2xl"
             style={{ height: 280 }}
           >
             <InlineMap venues={closestVenues} userLocation={userLocation} compact />
-
-            {/* Expand button — floats over the map */}
             <button
               onClick={() => setModalOpen(true)}
               className="absolute top-2 right-2 z-[500] flex items-center gap-1.5 bg-white/90 backdrop-blur-sm text-gray-800 text-xs font-semibold px-3 py-1.5 rounded-lg shadow-md hover:bg-white transition-colors"
@@ -131,6 +176,27 @@ export default function CityHeroLocation({
               </svg>
               Expand
             </button>
+          </div>
+
+          {/* Closest venues card row */}
+          <div className="mt-5">
+            <div className="flex items-center justify-between mb-3 text-left">
+              <h3 className="text-white font-bold text-base">Closest venues</h3>
+              <button
+                onClick={handleViewAll}
+                className="text-white/70 text-xs font-semibold hover:text-white transition-colors"
+              >
+                View all {nearbyCount} nearby →
+              </button>
+            </div>
+            <div
+              className="flex gap-3 overflow-x-auto [&::-webkit-scrollbar]:hidden"
+              style={{ scrollbarWidth: 'none' }}
+            >
+              {closestVenues.map((venue, i) => (
+                <ClosestVenueCard key={venue.id} venue={venue} index={i} />
+              ))}
+            </div>
           </div>
         </div>
       )}
