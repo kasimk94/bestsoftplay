@@ -1,9 +1,15 @@
 'use client'
 
 import { useState } from 'react'
+import dynamic from 'next/dynamic'
 import SearchBar from './SearchBar'
 import { useCityLocation } from './CityLocationContext'
 import NearbyMapModal, { type NearbyVenue } from './NearbyMapModal'
+
+const InlineMap = dynamic(() => import('./NearbyMapContent'), {
+  ssr: false,
+  loading: () => <div className="h-full bg-black/10 animate-pulse" />,
+})
 
 type VenueFull = {
   id: string
@@ -45,7 +51,7 @@ export default function CityHeroLocation({
   const { setUserLocation } = useCityLocation()
   const [nearbyVenues, setNearbyVenues] = useState<NearbyVenue[]>([])
   const [userLocation, setLocalUserLocation] = useState<{ lat: number; lng: number } | null>(null)
-  const [inlineLine, setInlineLine] = useState<string | null>(null)
+  const [caption, setCaption] = useState<string | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
 
   const handleLocation = (pos: GeolocationPosition) => {
@@ -63,13 +69,13 @@ export default function CityHeroLocation({
     setNearbyVenues(withDistance)
 
     if (withDistance.length > 0) {
-      setInlineLine(`${withDistance.length} venue${withDistance.length !== 1 ? 's' : ''} within ${RADIUS} miles of you`)
+      setCaption(`${withDistance.length} venue${withDistance.length !== 1 ? 's' : ''} within ${RADIUS} miles of you`)
     } else {
       const nearest = venues
         .filter((v): v is VenueFull & { lat: number; lng: number } => v.lat != null && v.lng != null)
         .map((v) => haversine(latitude, longitude, v.lat, v.lng))
         .sort((a, b) => a - b)[0]
-      setInlineLine(nearest !== undefined ? `Nearest venue is ${nearest.toFixed(1)} miles away` : null)
+      setCaption(nearest !== undefined ? `Nearest venue is ${nearest.toFixed(1)} miles away` : null)
     }
   }
 
@@ -79,25 +85,49 @@ export default function CityHeroLocation({
       ? `${nearbyCount} venues near you · ${totalCount} across ${cityName}`
       : `${totalCount} soft play venues to explore`
 
+  const showMap = nearbyCount > 0 && userLocation !== null
+
   return (
     <>
       <p className="text-white/75 text-xl font-semibold mb-10">{subtitle}</p>
       <div className="flex justify-center">
         <SearchBar onLocation={handleLocation} />
       </div>
-      {inlineLine && (
-        <button
-          onClick={() => nearbyVenues.length > 0 && setModalOpen(true)}
-          className={`flex items-center justify-center gap-1.5 text-white/70 text-sm mt-4 mx-auto transition-colors ${
-            nearbyVenues.length > 0
-              ? 'hover:text-white underline decoration-white/30 underline-offset-2 cursor-pointer'
-              : 'cursor-default'
-          }`}
-        >
+
+      {caption && !showMap && (
+        <p className="flex items-center justify-center gap-1.5 text-white/70 text-sm mt-4">
           <span>📍</span>
-          {inlineLine}
-          {nearbyVenues.length > 0 && <span className="text-white/50">— view on map ↗</span>}
-        </button>
+          {caption}
+        </p>
+      )}
+
+      {showMap && (
+        <div className="mt-5">
+          <p className="text-white/70 text-sm mb-2 flex items-center justify-center gap-1.5">
+            <span>📍</span>
+            {caption}
+          </p>
+          {/* Inline map */}
+          <div
+            className="relative rounded-2xl overflow-hidden border border-white/20 shadow-2xl"
+            style={{ height: 280 }}
+          >
+            <InlineMap venues={nearbyVenues} userLocation={userLocation} compact />
+
+            {/* Expand button — floats over the map */}
+            <button
+              onClick={() => setModalOpen(true)}
+              className="absolute top-2 right-2 z-[500] flex items-center gap-1.5 bg-white/90 backdrop-blur-sm text-gray-800 text-xs font-semibold px-3 py-1.5 rounded-lg shadow-md hover:bg-white transition-colors"
+              aria-label="Expand map"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                  d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+              </svg>
+              Expand
+            </button>
+          </div>
+        </div>
       )}
 
       {userLocation && (

@@ -65,9 +65,11 @@ function PopupPhoto({ venue, color }: { venue: NearbyVenue; color: string }) {
 function FitBounds({
   venues,
   userLocation,
+  maxZoom,
 }: {
   venues: NearbyVenue[]
   userLocation: { lat: number; lng: number }
+  maxZoom: number
 }) {
   const map = useMap()
   useEffect(() => {
@@ -76,9 +78,9 @@ function FitBounds({
       ...venues.map((v) => [v.lat, v.lng] as [number, number]),
     ]
     if (points.length > 1) {
-      map.fitBounds(points, { padding: [52, 52], maxZoom: 14 })
+      map.fitBounds(points, { padding: [52, 52], maxZoom })
     } else {
-      map.setView([userLocation.lat, userLocation.lng], 14)
+      map.setView([userLocation.lat, userLocation.lng], maxZoom)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -88,22 +90,24 @@ function FitBounds({
 export default function NearbyMapContent({
   venues,
   userLocation,
+  compact = false,
 }: {
   venues: NearbyVenue[]
   userLocation: { lat: number; lng: number }
+  compact?: boolean
 }) {
   return (
     <MapContainer
       center={[userLocation.lat, userLocation.lng]}
       zoom={13}
       style={{ height: '100%', width: '100%' }}
-      scrollWheelZoom
+      scrollWheelZoom={!compact}
     >
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
-      <FitBounds venues={venues} userLocation={userLocation} />
+      <FitBounds venues={venues} userLocation={userLocation} maxZoom={compact ? 13 : 14} />
 
       {/* You are here */}
       <Marker position={[userLocation.lat, userLocation.lng]} icon={youAreHereIcon} zIndexOffset={1000}>
