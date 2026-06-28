@@ -5,6 +5,7 @@ import Footer from '@/components/Footer'
 import VenueCard from '@/components/VenueCard'
 import Breadcrumb from '@/components/Breadcrumb'
 import { prisma } from '@/lib/prisma'
+import { excludeNonSoftPlay } from '@/lib/venueFilters'
 
 export const dynamic = 'force-dynamic'
 
@@ -31,13 +32,13 @@ async function getAreaVenues(citySlug: string, areaSlug: string, page: number) {
 
   const [venues, total] = await Promise.all([
     prisma.venue.findMany({
-      where: { cityId: data.city.id, areaId: data.area.id },
+      where: { cityId: data.city.id, areaId: data.area.id, AND: excludeNonSoftPlay() },
       include: { city: true, area: true },
       orderBy: [{ isFeatured: 'desc' }, { googleRating: 'desc' }],
       take: PAGE_SIZE,
       skip: (page - 1) * PAGE_SIZE,
     }),
-    prisma.venue.count({ where: { cityId: data.city.id, areaId: data.area.id } }),
+    prisma.venue.count({ where: { cityId: data.city.id, areaId: data.area.id, AND: excludeNonSoftPlay() } }),
   ])
 
   return { venues, total }

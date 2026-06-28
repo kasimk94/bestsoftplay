@@ -3,13 +3,25 @@
 import { useState } from 'react'
 
 interface VenuePhotoProps {
-  // Ordered list of direct CDN URLs to try (photoUrl, photoUrl2, photoUrl3)
   directUrls?: (string | null | undefined)[]
-  // Proxy fallback using the stored photo_reference — always works even when CDN URLs expire
   photoReference?: string | null
   name: string
   fallbackColor: string
   className?: string
+}
+
+function FallbackPlaceholder({ name, color }: { name: string; color: string }) {
+  return (
+    <div
+      className="absolute inset-0 flex flex-col items-center justify-center gap-2 select-none"
+      style={{ backgroundColor: color }}
+    >
+      <span className="text-5xl opacity-70">🎪</span>
+      <span className="text-white/70 text-xs font-semibold text-center px-4 line-clamp-2 leading-snug">
+        {name}
+      </span>
+    </div>
+  )
 }
 
 export default function VenuePhoto({
@@ -24,7 +36,6 @@ export default function VenuePhoto({
     ? `/api/place-photo?ref=${encodeURIComponent(photoReference)}&w=800`
     : null
 
-  // Stage: index into validUrls, then 'proxy', then 'failed'
   type Stage = number | 'proxy' | 'failed'
   const initialStage: Stage = validUrls.length > 0 ? 0 : proxyUrl ? 'proxy' : 'failed'
   const [stage, setStage] = useState<Stage>(initialStage)
@@ -41,7 +52,7 @@ export default function VenuePhoto({
   }
 
   if (stage === 'failed') {
-    return <div className={`absolute inset-0 ${className}`} style={{ backgroundColor: fallbackColor }} />
+    return <FallbackPlaceholder name={name} color={fallbackColor} />
   }
 
   const src = stage === 'proxy' ? proxyUrl! : validUrls[stage as number]

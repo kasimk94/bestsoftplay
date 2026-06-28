@@ -148,9 +148,10 @@ async function fetchOverpassVenues(citySlug) {
 
 // Venues whose names contain these strings are not soft plays and should be excluded
 const EXCLUDED_KEYWORDS = [
-  'Crystal Maze', 'King Pins', 'Treetop Golf', 'Sandbox VR',
-  'Bowling', 'Trampoline', 'Escape Room', 'Gamebox', 'Rock Over Climbing',
-  'Cinema', 'Golf', 'Laser', 'Arcade',
+  'Activate', 'Escape Room', 'Escape Time', 'Escape Zone',
+  'Crystal Maze', 'King Pins', 'Treetop Golf', 'Treetop Adventure', 'Sandbox VR',
+  'Bowling', 'Trampoline Park', 'Gamebox', 'Rock Over Climbing',
+  'Cinema', 'Golf', 'Laser Tag', 'Laser Quest', 'LaserZone', 'Arcade', 'Bingo',
 ]
 
 function isExcludedVenue(name) {

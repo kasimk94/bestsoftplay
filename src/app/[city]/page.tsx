@@ -8,6 +8,7 @@ import CityPageInteractive from '@/components/CityPageInteractive'
 import CityMap from '@/components/CityMap'
 import CityFAQ from '@/components/CityFAQ'
 import { prisma } from '@/lib/prisma'
+import { excludeNonSoftPlay } from '@/lib/venueFilters'
 import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
@@ -83,7 +84,7 @@ async function getCityData(slug: string) {
   if (!city) return null
 
   const venues = await prisma.venue.findMany({
-    where: { cityId: city.id },
+    where: { cityId: city.id, AND: excludeNonSoftPlay() },
     select: {
       id: true, name: true, slug: true, address: true,
       lat: true, lng: true,

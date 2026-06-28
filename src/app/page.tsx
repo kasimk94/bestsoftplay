@@ -5,6 +5,7 @@ import Footer from '@/components/Footer'
 import SearchBar from '@/components/SearchBar'
 import VenueCard from '@/components/VenueCard'
 import { prisma } from '@/lib/prisma'
+import { excludeNonSoftPlay } from '@/lib/venueFilters'
 import AnimatedWord from '@/components/AnimatedWord'
 import FloatingEmojis from '@/components/FloatingEmojis'
 
@@ -132,6 +133,7 @@ async function getFeaturedVenues() {
         googleRating: { gte: 4.5 },
         googleReviewCount: { gte: 50 },
         photoUrl: { not: null },
+        AND: excludeNonSoftPlay(),
       },
       include: { city: true, area: true },
       orderBy: [{ googleRating: 'desc' }, { googleReviewCount: 'desc' }],
