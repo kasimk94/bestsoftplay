@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import Link from 'next/link'
 import VenuePhoto from './VenuePhoto'
+import { useCityLocation } from './CityLocationContext'
 
 type Venue = {
   id: string
@@ -45,11 +46,27 @@ const CATEGORIES = [
 
 const CARD_COLORS = ['#7F77DD', '#1D9E75', '#D85A30', '#F59E0B']
 
-function VenueCard({ venue, index }: { venue: Venue; index: number }) {
+function haversine(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 3958.8
+  const dLat = ((lat2 - lat1) * Math.PI) / 180
+  const dLng = ((lng2 - lng1) * Math.PI) / 180
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLng / 2) ** 2
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+}
+
+function VenueCard({ venue, index, distance }: { venue: Venue; index: number; distance?: number }) {
   const color = CARD_COLORS[index % CARD_COLORS.length]
   const href = `/${venue.city.slug}/${venue.area.slug}/${venue.slug}`
   const badge = venue.isFeatured ? 'Top pick' : venue.isNew ? 'New' : null
   const hasPhoto = venue.photoUrl || venue.photoUrl2 || venue.photoUrl3 || venue.photoReference
+  const distLabel =
+    distance !== undefined
+      ? distance < 0.1
+        ? '< 0.1 mi'
+        : `${distance.toFixed(1)} mi`
+      : null
 
   return (
     <Link href={href} className="group block bg-white rounded-3xl overflow-hidden shadow-sm border border-gray-100 hover:shadow-xl transition-all duration-300">
@@ -63,9 +80,14 @@ function VenueCard({ venue, index }: { venue: Venue; index: number }) {
           />
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
-        {badge && (
+        {badge && !distLabel && (
           <span className="absolute top-3 left-3 z-10 bg-white/90 backdrop-blur-sm text-gray-900 text-xs font-bold px-2.5 py-1 rounded-full shadow-sm">
             {badge}
+          </span>
+        )}
+        {distLabel && (
+          <span className="absolute top-3 right-3 z-10 bg-white/90 backdrop-blur-sm text-gray-900 text-xs font-bold px-2.5 py-1.5 rounded-full shadow-sm">
+            📍 {distLabel}
           </span>
         )}
         <div className="absolute bottom-0 left-0 right-0 px-4 pb-3 z-10">
@@ -90,6 +112,8 @@ function VenueCard({ venue, index }: { venue: Venue; index: number }) {
   )
 }
 
+type Sort = 'rating' | 'reviews' | 'newest' | 'distance'
+
 export default function CityPageInteractive({
   venues,
   city,
@@ -97,13 +121,33 @@ export default function CityPageInteractive({
   venues: Venue[]
   city: { slug: string; name: string; colour: string }
 }) {
+  const { userLocation, nearestSortTrigger } = useCityLocation()
   const [ageFilter, setAgeFilter] = useState<string | null>(null)
   const [catFilter, setCatFilter] = useState<string | null>(null)
-  const [sort, setSort] = useState<'rating' | 'reviews' | 'newest'>('rating')
+  const [sort, setSort] = useState<Sort>('rating')
   const [page, setPage] = useState(1)
 
+  // When the hero location link is clicked, switch to distance sort
+  useEffect(() => {
+    if (nearestSortTrigger > 0) {
+      setSort('distance')
+      setPage(1)
+    }
+  }, [nearestSortTrigger])
+
+  const venuesWithDistance = useMemo(() => {
+    if (!userLocation) return venues.map((v) => ({ ...v, distance: undefined as number | undefined }))
+    return venues.map((v) => ({
+      ...v,
+      distance:
+        v.lat != null && v.lng != null
+          ? haversine(userLocation.lat, userLocation.lng, v.lat, v.lng)
+          : undefined,
+    }))
+  }, [venues, userLocation])
+
   const filtered = useMemo(() => {
-    let result = [...venues]
+    let result = [...venuesWithDistance]
 
     if (ageFilter) {
       result = result.filter((v) =>
@@ -118,10 +162,11 @@ export default function CityPageInteractive({
 
     if (sort === 'rating') result.sort((a, b) => (b.googleRating ?? 0) - (a.googleRating ?? 0))
     else if (sort === 'reviews') result.sort((a, b) => (b.googleReviewCount ?? 0) - (a.googleReviewCount ?? 0))
-    else result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    else if (sort === 'newest') result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    else if (sort === 'distance') result.sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity))
 
     return result
-  }, [venues, ageFilter, catFilter, sort])
+  }, [venuesWithDistance, ageFilter, catFilter, sort])
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE)
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
@@ -212,7 +257,7 @@ export default function CityPageInteractive({
       </section>
 
       {/* SECTION 7 — All venues with filters */}
-      <section className="py-14 px-4 relative" style={{ background: '#F3F1FF' }}>
+      <section id="venue-grid" className="py-14 px-4 relative" style={{ background: '#F3F1FF' }}>
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
             <div>
@@ -239,9 +284,10 @@ export default function CityPageInteractive({
               )}
               <select
                 value={sort}
-                onChange={(e) => { setSort(e.target.value as typeof sort); setPage(1) }}
+                onChange={(e) => { setSort(e.target.value as Sort); setPage(1) }}
                 className="text-sm border border-[#DDD9FF] rounded-xl px-3 py-2 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#7F77DD] shadow-sm"
               >
+                {userLocation && <option value="distance">Nearest first</option>}
                 <option value="rating">Top rated</option>
                 <option value="reviews">Most reviewed</option>
                 <option value="newest">Newest</option>
@@ -253,7 +299,12 @@ export default function CityPageInteractive({
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
                 {paginated.map((venue, i) => (
-                  <VenueCard key={venue.id} venue={venue} index={(page - 1) * PAGE_SIZE + i} />
+                  <VenueCard
+                    key={venue.id}
+                    venue={venue}
+                    index={(page - 1) * PAGE_SIZE + i}
+                    distance={sort === 'distance' ? venue.distance : undefined}
+                  />
                 ))}
               </div>
 

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import SearchBar from './SearchBar'
+import { useCityLocation } from './CityLocationContext'
 
 type VenueLite = { lat: number | null; lng: number | null }
 
@@ -26,11 +27,14 @@ export default function CityHeroLocation({
   totalCount: number
   cityName: string
 }) {
+  const { setUserLocation, triggerNearestSort } = useCityLocation()
   const [nearbyCount, setNearbyCount] = useState<number | null>(null)
   const [inlineLine, setInlineLine] = useState<string | null>(null)
 
   const handleLocation = (pos: GeolocationPosition) => {
     const { latitude, longitude } = pos.coords
+    setUserLocation({ lat: latitude, lng: longitude })
+
     const distances = venues
       .filter((v): v is { lat: number; lng: number } => v.lat != null && v.lng != null)
       .map((v) => haversine(latitude, longitude, v.lat, v.lng))
@@ -48,6 +52,11 @@ export default function CityHeroLocation({
     }
   }
 
+  const handleNearestClick = () => {
+    triggerNearestSort()
+    document.getElementById('venue-grid')?.scrollIntoView({ behavior: 'smooth' })
+  }
+
   const subtitle =
     nearbyCount !== null && nearbyCount > 0
       ? `${nearbyCount} venues near you · ${totalCount} across ${cityName}`
@@ -60,10 +69,13 @@ export default function CityHeroLocation({
         <SearchBar onLocation={handleLocation} />
       </div>
       {inlineLine && (
-        <p className="flex items-center justify-center gap-1.5 text-white/70 text-sm mt-4">
+        <button
+          onClick={handleNearestClick}
+          className="flex items-center justify-center gap-1.5 text-white/70 text-sm mt-4 hover:text-white transition-colors underline decoration-white/30 underline-offset-2 mx-auto"
+        >
           <span>📍</span>
-          {inlineLine}
-        </p>
+          {inlineLine} — see nearest first ↓
+        </button>
       )}
     </>
   )

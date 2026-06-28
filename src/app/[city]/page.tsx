@@ -6,6 +6,7 @@ import CityHeroLocation from '@/components/CityHeroLocation'
 import CityPageInteractive from '@/components/CityPageInteractive'
 import CityMap from '@/components/CityMap'
 import CityFAQ from '@/components/CityFAQ'
+import { CityLocationProvider } from '@/components/CityLocationContext'
 import { prisma } from '@/lib/prisma'
 import { excludeNonSoftPlay } from '@/lib/venueFilters'
 import Link from 'next/link'
@@ -153,6 +154,8 @@ export default async function CityPage({ params }: Props) {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />
       <Navbar />
 
+      <CityLocationProvider>
+
       {/* ── 1. HERO ──────────────────────────────────────────────────────────── */}
       <section
         className="relative overflow-hidden"
@@ -253,6 +256,8 @@ export default async function CityPage({ params }: Props) {
           <CityMap venues={serialized} citySlug={city.slug} />
         </div>
       </section>
+
+      </CityLocationProvider>
 
       {/* ── 8. FAQ ───────────────────────────────────────────────────────────── */}
       <CityFAQ cityName={city.name} faqs={faqData} />

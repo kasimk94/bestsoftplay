@@ -1,10 +1,11 @@
 'use client'
 
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import Link from 'next/link'
-import { useMemo } from 'react'
+import { useMemo, useEffect } from 'react'
+import { useCityLocation } from './CityLocationContext'
 
 type Venue = {
   id: string
@@ -17,8 +18,8 @@ type Venue = {
   area: { slug: string; name: string }
 }
 
-// Use CDN marker icons to bypass webpack asset handling
-const markerIcon = L.icon({
+// Standard venue pin via CDN (avoids webpack asset issues)
+const venueIcon = L.icon({
   iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
   iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
@@ -28,13 +29,36 @@ const markerIcon = L.icon({
   shadowSize: [41, 41],
 })
 
+// "You are here" — blue pulsing dot
+const youAreHereIcon = L.divIcon({
+  html: `<div style="
+    width:18px;height:18px;background:#3B82F6;border-radius:50%;
+    border:3px solid white;box-shadow:0 0 0 2px #3B82F6,0 2px 8px rgba(59,130,246,0.5);
+  "></div>`,
+  className: '',
+  iconSize: [18, 18],
+  iconAnchor: [9, 9],
+  popupAnchor: [0, -12],
+})
+
 const CITY_CENTERS: Record<string, [number, number]> = {
   london: [51.5074, -0.1278],
   birmingham: [52.4862, -1.8904],
   manchester: [53.4808, -2.2426],
 }
 
+function MapController({ userLocation }: { userLocation: { lat: number; lng: number } | null }) {
+  const map = useMap()
+  useEffect(() => {
+    if (userLocation) {
+      map.flyTo([userLocation.lat, userLocation.lng], 13, { duration: 1.5 })
+    }
+  }, [userLocation, map])
+  return null
+}
+
 export default function CityMapInner({ venues, citySlug }: { venues: Venue[]; citySlug: string }) {
+  const { userLocation } = useCityLocation()
   const mapped = useMemo(() => venues.filter((v) => v.lat != null && v.lng != null), [venues])
 
   const center = useMemo<[number, number]>(() => {
@@ -68,8 +92,10 @@ export default function CityMapInner({ venues, citySlug }: { venues: Venue[]; ci
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
+        <MapController userLocation={userLocation} />
+
         {mapped.map((v) => (
-          <Marker key={v.id} position={[v.lat!, v.lng!]} icon={markerIcon}>
+          <Marker key={v.id} position={[v.lat!, v.lng!]} icon={venueIcon}>
             <Popup>
               <div className="min-w-[160px]">
                 <p className="font-bold text-gray-900 text-sm leading-snug mb-1">{v.name}</p>
@@ -87,6 +113,14 @@ export default function CityMapInner({ venues, citySlug }: { venues: Venue[]; ci
             </Popup>
           </Marker>
         ))}
+
+        {userLocation && (
+          <Marker position={[userLocation.lat, userLocation.lng]} icon={youAreHereIcon}>
+            <Popup>
+              <div className="font-semibold text-sm text-gray-900">📍 You are here</div>
+            </Popup>
+          </Marker>
+        )}
       </MapContainer>
     </div>
   )
