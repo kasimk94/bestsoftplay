@@ -66,10 +66,12 @@ function FitBounds({
   venues,
   userLocation,
   maxZoom,
+  padding,
 }: {
   venues: NearbyVenue[]
   userLocation: { lat: number; lng: number }
   maxZoom: number
+  padding: [number, number]
 }) {
   const map = useMap()
   useEffect(() => {
@@ -78,7 +80,7 @@ function FitBounds({
       ...venues.map((v) => [v.lat, v.lng] as [number, number]),
     ]
     if (points.length > 1) {
-      map.fitBounds(points, { padding: [52, 52], maxZoom })
+      map.fitBounds(points, { padding, maxZoom })
     } else {
       map.setView([userLocation.lat, userLocation.lng], maxZoom)
     }
@@ -107,7 +109,12 @@ export default function NearbyMapContent({
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
-      <FitBounds venues={venues} userLocation={userLocation} maxZoom={compact ? 13 : 14} />
+      <FitBounds
+        venues={venues}
+        userLocation={userLocation}
+        maxZoom={compact ? 15 : 14}
+        padding={compact ? [10, 10] : [52, 52]}
+      />
 
       {/* You are here */}
       <Marker position={[userLocation.lat, userLocation.lng]} icon={youAreHereIcon} zIndexOffset={1000}>
