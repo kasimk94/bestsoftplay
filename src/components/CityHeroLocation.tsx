@@ -38,6 +38,7 @@ function haversine(lat1: number, lng1: number, lat2: number, lng2: number): numb
 }
 
 const RADIUS = 5
+const MAX_INLINE_PINS = 8
 
 export default function CityHeroLocation({
   venues,
@@ -69,7 +70,8 @@ export default function CityHeroLocation({
     setNearbyVenues(withDistance)
 
     if (withDistance.length > 0) {
-      setCaption(`${withDistance.length} venue${withDistance.length !== 1 ? 's' : ''} within ${RADIUS} miles of you`)
+      const n = Math.min(withDistance.length, MAX_INLINE_PINS)
+      setCaption(`${n} closest venue${n !== 1 ? 's' : ''} to you`)
     } else {
       const nearest = venues
         .filter((v): v is VenueFull & { lat: number; lng: number } => v.lat != null && v.lng != null)
@@ -80,6 +82,9 @@ export default function CityHeroLocation({
   }
 
   const nearbyCount = nearbyVenues.length
+  // Closest N for the inline map; all nearby go to the full-screen modal
+  const closestVenues = nearbyVenues.slice(0, MAX_INLINE_PINS)
+
   const subtitle =
     nearbyCount > 0
       ? `${nearbyCount} venues near you · ${totalCount} across ${cityName}`
@@ -107,12 +112,12 @@ export default function CityHeroLocation({
             <span>📍</span>
             {caption}
           </p>
-          {/* Inline map */}
+          {/* Inline map — only closest pins so the view is tight and clean */}
           <div
             className="relative rounded-2xl overflow-hidden border border-white/20 shadow-2xl"
             style={{ height: 280 }}
           >
-            <InlineMap venues={nearbyVenues} userLocation={userLocation} compact />
+            <InlineMap venues={closestVenues} userLocation={userLocation} compact />
 
             {/* Expand button — floats over the map */}
             <button
