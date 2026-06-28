@@ -3,8 +3,23 @@
 import { useState } from 'react'
 import SearchBar from './SearchBar'
 import { useCityLocation } from './CityLocationContext'
+import NearbyMapModal, { type NearbyVenue } from './NearbyMapModal'
 
-type VenueLite = { lat: number | null; lng: number | null }
+type VenueFull = {
+  id: string
+  name: string
+  slug: string
+  lat: number | null
+  lng: number | null
+  googleRating: number | null
+  googleReviewCount: number | null
+  photoUrl: string | null
+  photoUrl2: string | null
+  photoUrl3: string | null
+  photoReference: string | null
+  city: { slug: string }
+  area: { slug: string; name: string }
+}
 
 function haversine(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 3958.8
@@ -23,42 +38,44 @@ export default function CityHeroLocation({
   totalCount,
   cityName,
 }: {
-  venues: VenueLite[]
+  venues: VenueFull[]
   totalCount: number
   cityName: string
 }) {
-  const { setUserLocation, triggerNearestSort } = useCityLocation()
-  const [nearbyCount, setNearbyCount] = useState<number | null>(null)
+  const { setUserLocation } = useCityLocation()
+  const [nearbyVenues, setNearbyVenues] = useState<NearbyVenue[]>([])
+  const [userLocation, setLocalUserLocation] = useState<{ lat: number; lng: number } | null>(null)
   const [inlineLine, setInlineLine] = useState<string | null>(null)
+  const [modalOpen, setModalOpen] = useState(false)
 
   const handleLocation = (pos: GeolocationPosition) => {
     const { latitude, longitude } = pos.coords
-    setUserLocation({ lat: latitude, lng: longitude })
+    const loc = { lat: latitude, lng: longitude }
+    setLocalUserLocation(loc)
+    setUserLocation(loc)
 
-    const distances = venues
-      .filter((v): v is { lat: number; lng: number } => v.lat != null && v.lng != null)
-      .map((v) => haversine(latitude, longitude, v.lat, v.lng))
-      .sort((a, b) => a - b)
+    const withDistance: NearbyVenue[] = venues
+      .filter((v): v is VenueFull & { lat: number; lng: number } => v.lat != null && v.lng != null)
+      .map((v) => ({ ...v, distance: haversine(latitude, longitude, v.lat, v.lng) }))
+      .filter((v) => v.distance <= RADIUS)
+      .sort((a, b) => a.distance - b.distance)
 
-    if (distances.length === 0) return
+    setNearbyVenues(withDistance)
 
-    const nearby = distances.filter((d) => d <= RADIUS).length
-    setNearbyCount(nearby)
-
-    if (nearby > 0) {
-      setInlineLine(`${nearby} venue${nearby !== 1 ? 's' : ''} within ${RADIUS} miles of you`)
+    if (withDistance.length > 0) {
+      setInlineLine(`${withDistance.length} venue${withDistance.length !== 1 ? 's' : ''} within ${RADIUS} miles of you`)
     } else {
-      setInlineLine(`Nearest venue is ${distances[0].toFixed(1)} miles away`)
+      const nearest = venues
+        .filter((v): v is VenueFull & { lat: number; lng: number } => v.lat != null && v.lng != null)
+        .map((v) => haversine(latitude, longitude, v.lat, v.lng))
+        .sort((a, b) => a - b)[0]
+      setInlineLine(nearest !== undefined ? `Nearest venue is ${nearest.toFixed(1)} miles away` : null)
     }
   }
 
-  const handleNearestClick = () => {
-    triggerNearestSort()
-    document.getElementById('venue-grid')?.scrollIntoView({ behavior: 'smooth' })
-  }
-
+  const nearbyCount = nearbyVenues.length
   const subtitle =
-    nearbyCount !== null && nearbyCount > 0
+    nearbyCount > 0
       ? `${nearbyCount} venues near you · ${totalCount} across ${cityName}`
       : `${totalCount} soft play venues to explore`
 
@@ -70,12 +87,26 @@ export default function CityHeroLocation({
       </div>
       {inlineLine && (
         <button
-          onClick={handleNearestClick}
-          className="flex items-center justify-center gap-1.5 text-white/70 text-sm mt-4 hover:text-white transition-colors underline decoration-white/30 underline-offset-2 mx-auto"
+          onClick={() => nearbyVenues.length > 0 && setModalOpen(true)}
+          className={`flex items-center justify-center gap-1.5 text-white/70 text-sm mt-4 mx-auto transition-colors ${
+            nearbyVenues.length > 0
+              ? 'hover:text-white underline decoration-white/30 underline-offset-2 cursor-pointer'
+              : 'cursor-default'
+          }`}
         >
           <span>📍</span>
-          {inlineLine} — see nearest first ↓
+          {inlineLine}
+          {nearbyVenues.length > 0 && <span className="text-white/50">— view on map ↗</span>}
         </button>
+      )}
+
+      {userLocation && (
+        <NearbyMapModal
+          isOpen={modalOpen}
+          onClose={() => setModalOpen(false)}
+          venues={nearbyVenues}
+          userLocation={userLocation}
+        />
       )}
     </>
   )
