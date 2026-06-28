@@ -47,12 +47,20 @@ const CITY_CENTERS: Record<string, [number, number]> = {
   manchester: [53.4808, -2.2426],
 }
 
-/** Fits the map to all venue pins on mount. Runs once; user-location fly-to is handled separately. */
+// Rough UK bounding box — filters out venues with bad/foreign coordinates
+// (e.g. a Google Places result for an Australian branch of a UK chain)
+const UK_BOUNDS = { minLat: 49.5, maxLat: 61.0, minLng: -8.5, maxLng: 2.0 }
+function inUK(lat: number, lng: number) {
+  return lat >= UK_BOUNDS.minLat && lat <= UK_BOUNDS.maxLat &&
+         lng >= UK_BOUNDS.minLng && lng <= UK_BOUNDS.maxLng
+}
+
+/** Fits the map to all valid venue pins on mount. Runs once; user-location fly-to is handled separately. */
 function FitBoundsToVenues({ venues }: { venues: Venue[] }) {
   const map = useMap()
   useEffect(() => {
     const points: [number, number][] = venues
-      .filter((v) => v.lat != null && v.lng != null)
+      .filter((v) => v.lat != null && v.lng != null && inUK(v.lat!, v.lng!))
       .map((v) => [v.lat!, v.lng!])
     if (points.length > 0) {
       map.fitBounds(points, { padding: [40, 40], maxZoom: 12 })
@@ -74,7 +82,10 @@ function MapController({ userLocation }: { userLocation: { lat: number; lng: num
 
 export default function CityMapInner({ venues, citySlug }: { venues: Venue[]; citySlug: string }) {
   const { userLocation } = useCityLocation()
-  const mapped = useMemo(() => venues.filter((v) => v.lat != null && v.lng != null), [venues])
+  const mapped = useMemo(
+    () => venues.filter((v) => v.lat != null && v.lng != null && inUK(v.lat!, v.lng!)),
+    [venues]
+  )
 
   // Fallback center used only for MapContainer's required initial prop — FitBoundsToVenues
   // overrides this immediately on mount using the actual venue coordinates.
