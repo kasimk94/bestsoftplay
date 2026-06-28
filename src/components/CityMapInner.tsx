@@ -47,6 +47,21 @@ const CITY_CENTERS: Record<string, [number, number]> = {
   manchester: [53.4808, -2.2426],
 }
 
+/** Fits the map to all venue pins on mount. Runs once; user-location fly-to is handled separately. */
+function FitBoundsToVenues({ venues }: { venues: Venue[] }) {
+  const map = useMap()
+  useEffect(() => {
+    const points: [number, number][] = venues
+      .filter((v) => v.lat != null && v.lng != null)
+      .map((v) => [v.lat!, v.lng!])
+    if (points.length > 0) {
+      map.fitBounds(points, { padding: [40, 40], maxZoom: 12 })
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+  return null
+}
+
 function MapController({ userLocation }: { userLocation: { lat: number; lng: number } | null }) {
   const map = useMap()
   useEffect(() => {
@@ -61,12 +76,9 @@ export default function CityMapInner({ venues, citySlug }: { venues: Venue[]; ci
   const { userLocation } = useCityLocation()
   const mapped = useMemo(() => venues.filter((v) => v.lat != null && v.lng != null), [venues])
 
-  const center = useMemo<[number, number]>(() => {
-    if (mapped.length === 0) return CITY_CENTERS[citySlug] ?? [52.4, -1.5]
-    const avgLat = mapped.reduce((s, v) => s + v.lat!, 0) / mapped.length
-    const avgLng = mapped.reduce((s, v) => s + v.lng!, 0) / mapped.length
-    return [avgLat, avgLng]
-  }, [mapped, citySlug])
+  // Fallback center used only for MapContainer's required initial prop — FitBoundsToVenues
+  // overrides this immediately on mount using the actual venue coordinates.
+  const fallbackCenter = CITY_CENTERS[citySlug] ?? [52.4, -1.5]
 
   if (mapped.length === 0) {
     return (
@@ -83,8 +95,8 @@ export default function CityMapInner({ venues, citySlug }: { venues: Venue[]; ci
   return (
     <div className="h-[500px] rounded-3xl overflow-hidden shadow-lg border border-[#DDD9FF]">
       <MapContainer
-        center={center}
-        zoom={11}
+        center={fallbackCenter}
+        zoom={10}
         style={{ height: '100%', width: '100%' }}
         scrollWheelZoom={false}
       >
@@ -92,6 +104,7 @@ export default function CityMapInner({ venues, citySlug }: { venues: Venue[]; ci
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
+        <FitBoundsToVenues venues={mapped} />
         <MapController userLocation={userLocation} />
 
         {mapped.map((v) => (
