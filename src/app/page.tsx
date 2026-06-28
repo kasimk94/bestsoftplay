@@ -171,8 +171,9 @@ export default async function HomePage() {
 
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-gray-900 tracking-tight leading-tight mb-4">
             Find the perfect soft play for your
-            <br />
-            <AnimatedWord />
+            <span className="block mt-3 sm:mt-4">
+              <AnimatedWord />
+            </span>
           </h1>
 
           <p className="text-lg sm:text-xl text-gray-500 mb-10 max-w-2xl mx-auto leading-relaxed">
