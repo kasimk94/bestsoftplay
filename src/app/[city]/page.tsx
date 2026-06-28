@@ -2,7 +2,6 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
-import SearchBar from '@/components/SearchBar'
 import CityHeroLocation from '@/components/CityHeroLocation'
 import CityPageInteractive from '@/components/CityPageInteractive'
 import CityMap from '@/components/CityMap'
@@ -193,11 +192,7 @@ export default async function CityPage({ params }: Props) {
           <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black text-white tracking-tight leading-none mb-4 drop-shadow-xl">
             {city.name}
           </h1>
-          <CityHeroLocation venues={serialized} totalCount={venues.length} cityName={city.name}>
-            <div className="flex justify-center">
-              <SearchBar />
-            </div>
-          </CityHeroLocation>
+          <CityHeroLocation venues={serialized} totalCount={venues.length} cityName={city.name} />
         </div>
       </section>
 

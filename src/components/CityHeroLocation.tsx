@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
+import SearchBar from './SearchBar'
 
 type VenueLite = { lat: number | null; lng: number | null }
 
@@ -20,42 +21,32 @@ export default function CityHeroLocation({
   venues,
   totalCount,
   cityName,
-  children,
 }: {
   venues: VenueLite[]
   totalCount: number
   cityName: string
-  children: React.ReactNode
 }) {
   const [nearbyCount, setNearbyCount] = useState<number | null>(null)
   const [inlineLine, setInlineLine] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (!navigator.geolocation) return
+  const handleLocation = (pos: GeolocationPosition) => {
+    const { latitude, longitude } = pos.coords
+    const distances = venues
+      .filter((v): v is { lat: number; lng: number } => v.lat != null && v.lng != null)
+      .map((v) => haversine(latitude, longitude, v.lat, v.lng))
+      .sort((a, b) => a - b)
 
-    navigator.geolocation.getCurrentPosition(
-      ({ coords: { latitude, longitude } }) => {
-        const distances = venues
-          .filter((v): v is { lat: number; lng: number } => v.lat != null && v.lng != null)
-          .map((v) => haversine(latitude, longitude, v.lat, v.lng))
-          .sort((a, b) => a - b)
+    if (distances.length === 0) return
 
-        if (distances.length === 0) return
+    const nearby = distances.filter((d) => d <= RADIUS).length
+    setNearbyCount(nearby)
 
-        const nearby = distances.filter((d) => d <= RADIUS).length
-        setNearbyCount(nearby)
-
-        if (nearby > 0) {
-          setInlineLine(`${nearby} venue${nearby !== 1 ? 's' : ''} within ${RADIUS} miles of you`)
-        } else {
-          setInlineLine(`Nearest venue is ${distances[0].toFixed(1)} miles away`)
-        }
-      },
-      () => {},
-      { timeout: 8000 }
-    )
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+    if (nearby > 0) {
+      setInlineLine(`${nearby} venue${nearby !== 1 ? 's' : ''} within ${RADIUS} miles of you`)
+    } else {
+      setInlineLine(`Nearest venue is ${distances[0].toFixed(1)} miles away`)
+    }
+  }
 
   const subtitle =
     nearbyCount !== null && nearbyCount > 0
@@ -65,7 +56,9 @@ export default function CityHeroLocation({
   return (
     <>
       <p className="text-white/75 text-xl font-semibold mb-10">{subtitle}</p>
-      {children}
+      <div className="flex justify-center">
+        <SearchBar onLocation={handleLocation} />
+      </div>
       {inlineLine && (
         <p className="flex items-center justify-center gap-1.5 text-white/70 text-sm mt-4">
           <span>📍</span>
