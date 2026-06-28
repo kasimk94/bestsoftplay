@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import SearchBar from '@/components/SearchBar'
-import NearestVenues from '@/components/NearestVenues'
+import CityHeroLocation from '@/components/CityHeroLocation'
 import CityPageInteractive from '@/components/CityPageInteractive'
 import CityMap from '@/components/CityMap'
 import CityFAQ from '@/components/CityFAQ'
@@ -193,18 +193,13 @@ export default async function CityPage({ params }: Props) {
           <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black text-white tracking-tight leading-none mb-4 drop-shadow-xl">
             {city.name}
           </h1>
-          <p className="text-white/75 text-xl font-semibold mb-10">
-            {venues.length} soft play venues to explore
-          </p>
-
-          <div className="flex justify-center">
-            <SearchBar />
-          </div>
+          <CityHeroLocation venues={serialized} totalCount={venues.length} cityName={city.name}>
+            <div className="flex justify-center">
+              <SearchBar />
+            </div>
+          </CityHeroLocation>
         </div>
       </section>
-
-      {/* ── 2. NEAREST TO YOU ────────────────────────────────────────────────── */}
-      <NearestVenues venues={serialized} citySlug={city.slug} />
 
       {/* ── 3 + 4 + 7. AGE / CATEGORY FILTERS + VENUE GRID ─────────────────── */}
       <CityPageInteractive
