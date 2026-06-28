@@ -60,7 +60,6 @@ function VenueCard({ venue, index, distance }: { venue: Venue; index: number; di
   const color = CARD_COLORS[index % CARD_COLORS.length]
   const href = `/${venue.city.slug}/${venue.area.slug}/${venue.slug}`
   const badge = venue.isFeatured ? 'Top pick' : venue.isNew ? 'New' : null
-  const hasPhoto = venue.photoUrl || venue.photoUrl2 || venue.photoUrl3 || venue.photoReference
   const distLabel =
     distance !== undefined
       ? distance < 0.1
@@ -71,14 +70,12 @@ function VenueCard({ venue, index, distance }: { venue: Venue; index: number; di
   return (
     <Link href={href} className="group block bg-white rounded-3xl overflow-hidden shadow-sm border border-gray-100 hover:shadow-xl transition-all duration-300">
       <div className="relative h-[200px] overflow-hidden" style={{ backgroundColor: color }}>
-        {hasPhoto && (
-          <VenuePhoto
-            directUrls={[venue.photoUrl, venue.photoUrl2, venue.photoUrl3]}
-            photoReference={venue.photoReference}
-            name={venue.name}
-            fallbackColor={color}
-          />
-        )}
+        <VenuePhoto
+          directUrls={[venue.photoUrl, venue.photoUrl2, venue.photoUrl3]}
+          photoReference={venue.photoReference}
+          name={venue.name}
+          fallbackColor={color}
+        />
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
         {badge && !distLabel && (
           <span className="absolute top-3 left-3 z-10 bg-white/90 backdrop-blur-sm text-gray-900 text-xs font-bold px-2.5 py-1 rounded-full shadow-sm">

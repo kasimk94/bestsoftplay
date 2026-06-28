@@ -27,20 +27,17 @@ export default function VenueCard({ venue, index = 0 }: VenueCardProps) {
   const color = CARD_COLORS[index % CARD_COLORS.length]
   const href = venue.city && venue.area ? `/${venue.city.slug}/${venue.area.slug}/${venue.slug}` : '#'
   const badge = venue.isFeatured ? 'Top pick' : venue.isNew ? 'New' : null
-  const hasAnyPhoto = venue.photoUrl || venue.photoUrl2 || venue.photoUrl3 || venue.photoReference
 
   return (
     <Link href={href} className="group block bg-white rounded-3xl overflow-hidden shadow-sm border border-gray-100 hover:shadow-xl transition-all duration-300">
       {/* Photo with gradient overlay */}
       <div className="relative h-[220px] overflow-hidden" style={{ backgroundColor: color }}>
-        {hasAnyPhoto && (
-          <VenuePhoto
-            directUrls={[venue.photoUrl, venue.photoUrl2, venue.photoUrl3]}
-            photoReference={venue.photoReference}
-            name={venue.name}
-            fallbackColor={color}
-          />
-        )}
+        <VenuePhoto
+          directUrls={[venue.photoUrl, venue.photoUrl2, venue.photoUrl3]}
+          photoReference={venue.photoReference}
+          name={venue.name}
+          fallbackColor={color}
+        />
 
         {/* Dark gradient for text legibility */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
