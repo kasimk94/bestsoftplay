@@ -55,7 +55,9 @@ const CITY_VIEW: Record<string, { center: [number, number]; zoom: number }> = {
 // pulling the map view out to show all of England or beyond.
 const CITY_BOUNDS: Record<string, Bbox> = {
   london:     { minLat: 51.2,  maxLat: 51.7,  minLng: -0.6,  maxLng: 0.4  },
-  birmingham: { minLat: 52.35, maxLat: 52.65, minLng: -2.1,  maxLng: -1.65 },
+  // Wide enough to include Wolverhampton, Dudley, Sandwell, Walsall on the west,
+  // but excludes Coventry (lng > -1.70) to the east.
+  birmingham: { minLat: 52.35, maxLat: 52.75, minLng: -2.3,  maxLng: -1.70 },
   manchester: { minLat: 53.35, maxLat: 53.65, minLng: -2.5,  maxLng: -1.9  },
 }
 const FALLBACK_BBOX: Bbox = { minLat: 49.5, maxLat: 61.0, minLng: -8.5, maxLng: 2.0 }

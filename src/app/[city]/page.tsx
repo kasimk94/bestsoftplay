@@ -65,6 +65,21 @@ const FAQ_DATA: Record<string, { q: string; a: string }[]> = {
   ],
 }
 
+// ── Per-city geographic bounding boxes ───────────────────────────────────────
+// Used to strip venues with wrong coordinates from the nearby-map calculation.
+// Must stay in sync with CityMapInner CITY_BOUNDS.
+const CITY_BBOX: Record<string, { minLat: number; maxLat: number; minLng: number; maxLng: number }> = {
+  london:     { minLat: 51.2,  maxLat: 51.7,  minLng: -0.6,  maxLng: 0.4  },
+  birmingham: { minLat: 52.35, maxLat: 52.75, minLng: -2.3,  maxLng: -1.70 },
+  manchester: { minLat: 53.35, maxLat: 53.65, minLng: -2.5,  maxLng: -1.9  },
+}
+function inCityBbox(slug: string, lat: number | null, lng: number | null): boolean {
+  if (lat == null || lng == null) return false
+  const b = CITY_BBOX[slug]
+  if (!b) return true // unknown city — don't filter
+  return lat >= b.minLat && lat <= b.maxLat && lng >= b.minLng && lng <= b.maxLng
+}
+
 // ── Data fetching ─────────────────────────────────────────────────────────────
 
 interface Props {
@@ -128,6 +143,11 @@ export default async function CityPage({ params }: Props) {
     ...v,
     createdAt: v.createdAt.toISOString(),
   }))
+
+  // Venues with coordinates outside this city's bbox (wrong Google Places data,
+  // foreign branches, etc.) are filtered out of the nearby-map calculation so
+  // they don't appear as false "close" matches when the user shares location.
+  const serializedInBbox = serialized.filter((v) => inCityBbox(city.slug, v.lat, v.lng))
 
   const breadcrumbJsonLd = {
     '@context': 'https://schema.org',
@@ -195,7 +215,7 @@ export default async function CityPage({ params }: Props) {
           <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black text-white tracking-tight leading-none mb-4 drop-shadow-xl">
             {city.name}
           </h1>
-          <CityHeroLocation venues={serialized} totalCount={venues.length} cityName={city.name} />
+          <CityHeroLocation venues={serializedInBbox} totalCount={venues.length} cityName={city.name} />
         </div>
       </section>
 
