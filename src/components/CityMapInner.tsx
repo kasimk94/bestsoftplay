@@ -41,27 +41,34 @@ const youAreHereIcon = L.divIcon({
   popupAnchor: [0, -12],
 })
 
+type Bbox = { minLat: number; maxLat: number; minLng: number; maxLng: number }
+
 const CITY_CENTERS: Record<string, [number, number]> = {
   london: [51.5074, -0.1278],
   birmingham: [52.4862, -1.8904],
   manchester: [53.4808, -2.2426],
 }
 
-// Rough UK bounding box — filters out venues with bad/foreign coordinates
-// (e.g. a Google Places result for an Australian branch of a UK chain)
-const UK_BOUNDS = { minLat: 49.5, maxLat: 61.0, minLng: -8.5, maxLng: 2.0 }
-function inUK(lat: number, lng: number) {
-  return lat >= UK_BOUNDS.minLat && lat <= UK_BOUNDS.maxLat &&
-         lng >= UK_BOUNDS.minLng && lng <= UK_BOUNDS.maxLng
+// Per-city bounding boxes — only venues physically inside these bounds are
+// rendered as pins or used in the fitBounds calculation. This prevents
+// mismatched Google Places coordinates (foreign branches, data errors) from
+// pulling the map view out to show all of England or beyond.
+const CITY_BOUNDS: Record<string, Bbox> = {
+  london:     { minLat: 51.2,  maxLat: 51.7,  minLng: -0.6,  maxLng: 0.4  },
+  birmingham: { minLat: 52.35, maxLat: 52.65, minLng: -2.1,  maxLng: -1.65 },
+  manchester: { minLat: 53.35, maxLat: 53.65, minLng: -2.5,  maxLng: -1.9  },
+}
+const FALLBACK_BBOX: Bbox = { minLat: 49.5, maxLat: 61.0, minLng: -8.5, maxLng: 2.0 }
+
+function inBbox(lat: number, lng: number, bbox: Bbox) {
+  return lat >= bbox.minLat && lat <= bbox.maxLat && lng >= bbox.minLng && lng <= bbox.maxLng
 }
 
 /** Fits the map to all valid venue pins on mount. Runs once; user-location fly-to is handled separately. */
 function FitBoundsToVenues({ venues }: { venues: Venue[] }) {
   const map = useMap()
   useEffect(() => {
-    const points: [number, number][] = venues
-      .filter((v) => v.lat != null && v.lng != null && inUK(v.lat!, v.lng!))
-      .map((v) => [v.lat!, v.lng!])
+    const points: [number, number][] = venues.map((v) => [v.lat!, v.lng!])
     if (points.length > 0) {
       map.fitBounds(points, { padding: [40, 40], maxZoom: 12 })
     }
@@ -82,9 +89,10 @@ function MapController({ userLocation }: { userLocation: { lat: number; lng: num
 
 export default function CityMapInner({ venues, citySlug }: { venues: Venue[]; citySlug: string }) {
   const { userLocation } = useCityLocation()
+  const bbox = CITY_BOUNDS[citySlug] ?? FALLBACK_BBOX
   const mapped = useMemo(
-    () => venues.filter((v) => v.lat != null && v.lng != null && inUK(v.lat!, v.lng!)),
-    [venues]
+    () => venues.filter((v) => v.lat != null && v.lng != null && inBbox(v.lat!, v.lng!, bbox)),
+    [venues, bbox]
   )
 
   // Fallback center used only for MapContainer's required initial prop — FitBoundsToVenues
