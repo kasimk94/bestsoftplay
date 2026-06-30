@@ -43,10 +43,10 @@ const youAreHereIcon = L.divIcon({
 
 type Bbox = { minLat: number; maxLat: number; minLng: number; maxLng: number }
 
-const CITY_CENTERS: Record<string, [number, number]> = {
-  london: [51.5074, -0.1278],
-  birmingham: [52.4862, -1.8904],
-  manchester: [53.4808, -2.2426],
+const CITY_VIEW: Record<string, { center: [number, number]; zoom: number }> = {
+  london:     { center: [51.505, -0.09],  zoom: 10 },
+  birmingham: { center: [52.48,  -1.9],   zoom: 11 },
+  manchester: { center: [53.48,  -2.24],  zoom: 11 },
 }
 
 // Per-city bounding boxes — only venues physically inside these bounds are
@@ -62,19 +62,6 @@ const FALLBACK_BBOX: Bbox = { minLat: 49.5, maxLat: 61.0, minLng: -8.5, maxLng: 
 
 function inBbox(lat: number, lng: number, bbox: Bbox) {
   return lat >= bbox.minLat && lat <= bbox.maxLat && lng >= bbox.minLng && lng <= bbox.maxLng
-}
-
-/** Fits the map to all valid venue pins on mount. Runs once; user-location fly-to is handled separately. */
-function FitBoundsToVenues({ venues }: { venues: Venue[] }) {
-  const map = useMap()
-  useEffect(() => {
-    const points: [number, number][] = venues.map((v) => [v.lat!, v.lng!])
-    if (points.length > 0) {
-      map.fitBounds(points, { padding: [40, 40], maxZoom: 12 })
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-  return null
 }
 
 function MapController({ userLocation }: { userLocation: { lat: number; lng: number } | null }) {
@@ -95,9 +82,7 @@ export default function CityMapInner({ venues, citySlug }: { venues: Venue[]; ci
     [venues, bbox]
   )
 
-  // Fallback center used only for MapContainer's required initial prop — FitBoundsToVenues
-  // overrides this immediately on mount using the actual venue coordinates.
-  const fallbackCenter = CITY_CENTERS[citySlug] ?? [52.4, -1.5]
+  const view = CITY_VIEW[citySlug] ?? { center: [52.4, -1.5] as [number, number], zoom: 10 }
 
   if (mapped.length === 0) {
     return (
@@ -114,8 +99,8 @@ export default function CityMapInner({ venues, citySlug }: { venues: Venue[]; ci
   return (
     <div className="h-[500px] rounded-3xl overflow-hidden shadow-lg border border-[#DDD9FF]">
       <MapContainer
-        center={fallbackCenter}
-        zoom={10}
+        center={view.center}
+        zoom={view.zoom}
         style={{ height: '100%', width: '100%' }}
         scrollWheelZoom={false}
       >
@@ -123,7 +108,6 @@ export default function CityMapInner({ venues, citySlug }: { venues: Venue[]; ci
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        <FitBoundsToVenues venues={mapped} />
         <MapController userLocation={userLocation} />
 
         {mapped.map((v) => (
