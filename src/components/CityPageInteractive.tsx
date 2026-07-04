@@ -118,7 +118,12 @@ export default function CityPageInteractive({
   venues: Venue[]
   city: { slug: string; name: string; colour: string }
 }) {
-  const { userLocation, nearestSortTrigger } = useCityLocation()
+  const {
+    userLocation, setUserLocation,
+    nearestSortTrigger,
+    postcodeQuery, setPostcodeQuery,
+    triggerSearchReset,
+  } = useCityLocation()
   const [ageFilter, setAgeFilter] = useState<string | null>(null)
   const [catFilter, setCatFilter] = useState<string | null>(null)
   const [sort, setSort] = useState<Sort>('rating')
@@ -130,6 +135,14 @@ export default function CityPageInteractive({
       setPage(1)
     }
   }, [nearestSortTrigger])
+
+  const handleClearSearch = () => {
+    setUserLocation(null)
+    setPostcodeQuery(null)
+    triggerSearchReset()
+    setSort('rating')
+    setPage(1)
+  }
 
   const venuesWithDistance = useMemo(() => {
     if (!userLocation) return venues.map((v) => ({ ...v, distance: undefined as number | undefined }))
@@ -255,6 +268,25 @@ export default function CityPageInteractive({
       {/* SECTION 7 — All venues with filters */}
       <section id="venue-grid" className="py-14 px-4 relative" style={{ background: '#F3F1FF' }}>
         <div className="max-w-7xl mx-auto">
+
+          {/* Postcode search banner */}
+          {postcodeQuery && (
+            <div className="flex items-center justify-between gap-4 bg-[#7F77DD] text-white rounded-2xl px-5 py-3.5 mb-6">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span className="text-lg select-none flex-none">📮</span>
+                <span className="font-semibold text-sm sm:text-base truncate">
+                  {filtered.length} venue{filtered.length !== 1 ? 's' : ''} near {postcodeQuery} — sorted by distance
+                </span>
+              </div>
+              <button
+                onClick={handleClearSearch}
+                className="flex-none text-white/80 hover:text-white text-sm font-semibold whitespace-nowrap flex items-center gap-1.5 bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-xl transition-colors"
+              >
+                ✕ Clear search
+              </button>
+            </div>
+          )}
+
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
             <div>
               <div className="flex items-center gap-3 mb-1">

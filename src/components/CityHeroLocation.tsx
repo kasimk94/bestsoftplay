@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import SearchBar from './SearchBar'
@@ -90,21 +90,30 @@ export default function CityHeroLocation({
   totalCount: number
   cityName: string
 }) {
-  const { setUserLocation, triggerNearestSort } = useCityLocation()
+  const { setUserLocation, triggerNearestSort, setPostcodeQuery, searchReset } = useCityLocation()
   const [nearbyVenues, setNearbyVenues] = useState<NearbyVenue[]>([])
   const [userLocation, setLocalUserLocation] = useState<{ lat: number; lng: number } | null>(null)
   const [caption, setCaption] = useState<string | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
 
-  const handleLocation = (pos: GeolocationPosition) => {
-    const { latitude, longitude } = pos.coords
-    const loc = { lat: latitude, lng: longitude }
+  // Reset inline map when "Clear search" is clicked in the venue grid
+  useEffect(() => {
+    if (searchReset > 0) {
+      setLocalUserLocation(null)
+      setNearbyVenues([])
+      setCaption(null)
+    }
+  }, [searchReset])
+
+  // Shared logic for processing any lat/lng (geolocation or geocoded postcode)
+  const processCoords = (lat: number, lng: number) => {
+    const loc = { lat, lng }
     setLocalUserLocation(loc)
     setUserLocation(loc)
 
     const withDistance: NearbyVenue[] = venues
       .filter((v): v is VenueFull & { lat: number; lng: number } => v.lat != null && v.lng != null)
-      .map((v) => ({ ...v, distance: haversine(latitude, longitude, v.lat, v.lng) }))
+      .map((v) => ({ ...v, distance: haversine(lat, lng, v.lat, v.lng) }))
       .filter((v) => v.distance <= RADIUS)
       .sort((a, b) => a.distance - b.distance)
 
@@ -116,10 +125,24 @@ export default function CityHeroLocation({
     } else {
       const nearest = venues
         .filter((v): v is VenueFull & { lat: number; lng: number } => v.lat != null && v.lng != null)
-        .map((v) => haversine(latitude, longitude, v.lat, v.lng))
+        .map((v) => haversine(lat, lng, v.lat, v.lng))
         .sort((a, b) => a - b)[0]
       setCaption(nearest !== undefined ? `Nearest venue is ${nearest.toFixed(1)} miles away` : null)
     }
+  }
+
+  const handleLocation = (pos: GeolocationPosition) => {
+    processCoords(pos.coords.latitude, pos.coords.longitude)
+  }
+
+  const handlePostcodeSearch = (postcode: string, lat: number, lng: number) => {
+    setPostcodeQuery(postcode.toUpperCase())
+    processCoords(lat, lng)
+    triggerNearestSort()
+    // Scroll venue grid into view after a short delay so the state update propagates
+    setTimeout(() => {
+      document.getElementById('venue-grid')?.scrollIntoView({ behavior: 'smooth' })
+    }, 100)
   }
 
   const handleViewAll = () => {
@@ -141,7 +164,7 @@ export default function CityHeroLocation({
     <>
       <p className="text-white/75 text-xl font-semibold mb-10">{subtitle}</p>
       <div className="flex justify-center">
-        <SearchBar onLocation={handleLocation} />
+        <SearchBar onLocation={handleLocation} onPostcodeSearch={handlePostcodeSearch} />
       </div>
 
       {caption && !showMap && (
