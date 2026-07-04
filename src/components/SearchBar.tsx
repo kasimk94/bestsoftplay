@@ -33,7 +33,7 @@ async function fetchSuggestions(partial: string): Promise<string[]> {
     if (!res.ok) return []
     const data = await res.json()
     if (data.status !== 200 || !Array.isArray(data.result)) return []
-    return data.result.slice(0, 5)
+    return data.result.slice(0, 10)
   } catch {
     return []
   }
