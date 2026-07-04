@@ -9,8 +9,6 @@ import CityFAQ from '@/components/CityFAQ'
 import { CityLocationProvider } from '@/components/CityLocationContext'
 import { prisma } from '@/lib/prisma'
 import { excludeNonSoftPlay } from '@/lib/venueFilters'
-import Link from 'next/link'
-
 export const dynamic = 'force-dynamic'
 
 // ── City visual config ────────────────────────────────────────────────────────
@@ -28,15 +26,6 @@ const CITY_CONFIG: Record<string, { gradient: string; scatter: string[] }> = {
     gradient: 'linear-gradient(160deg, #064E3B 0%, #059669 45%, #14B8A6 72%, #22D3EE 100%)',
     scatter: ['🌈', '🌟', '✨', '⭐', '💫', '🎪', '🌟', '✨'],
   },
-}
-
-// Emoji decoration per area slug
-const AREA_EMOJIS: Record<string, string> = {
-  'south-london': '🌉', 'north-london': '🏙️', 'east-london': '🗼', 'west-london': '🎡',
-  'central-london': '🎭', 'city-centre': '🏛️', 'solihull': '🌿', 'sutton-coldfield': '🌲',
-  'wolverhampton': '🏭', 'dudley': '⚙️', 'walsall': '🔵', 'sandwell': '🟠',
-  'salford': '🎭', 'trafford': '⚽', 'stockport': '🌧️', 'bolton': '🌼',
-  'wigan': '🍺', 'oldham': '🏔️', 'rochdale': '🌾', 'bury': '🟤', 'altrincham': '🍃',
 }
 
 // ── City-specific FAQs ────────────────────────────────────────────────────────
@@ -219,51 +208,12 @@ export default async function CityPage({ params }: Props) {
         </div>
       </section>
 
-      {/* ── 3 + 4 + 7. AGE / CATEGORY FILTERS + VENUE GRID ─────────────────── */}
+      {/* ── 3 + 4 + 5 + 7. BROWSE SECTIONS + VENUE GRID (order swaps on search) */}
       <CityPageInteractive
         venues={serialized}
         city={{ slug: city.slug, name: city.name, colour: city.colour }}
+        areas={city.areas}
       />
-
-      {/* ── 5. BROWSE BY AREA ────────────────────────────────────────────────── */}
-      {city.areas.length > 0 && (
-        <section className="py-14 px-4 relative overflow-hidden" style={{ background: '#EBE8FF' }}>
-          {/* Sparkles */}
-          <div className="absolute inset-0 pointer-events-none select-none overflow-hidden">
-            <span className="absolute top-5 left-[4%] text-xl opacity-[0.12]">✦</span>
-            <span className="absolute top-12 right-[6%] text-2xl opacity-[0.10]">✶</span>
-            <span className="absolute bottom-6 left-[10%] text-lg opacity-[0.10]">✨</span>
-            <span className="absolute bottom-8 right-[4%] text-xl opacity-[0.12]">✦</span>
-          </div>
-          <div className="relative z-10 max-w-7xl mx-auto">
-            <div className="flex items-center gap-3 mb-2">
-              <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight">Browse by area</h2>
-              <span className="text-2xl">🗺️</span>
-            </div>
-            <p className="text-gray-500 mb-8">Explore soft plays in a specific neighbourhood</p>
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-              {city.areas.map((area) => (
-                <Link
-                  key={area.id}
-                  href={`/${city.slug}/${area.slug}`}
-                  className="group bg-white rounded-2xl p-5 shadow-sm hover:shadow-lg transition-all duration-200 hover:scale-[1.03] text-center"
-                >
-                  <div className="text-3xl mb-2 select-none">
-                    {AREA_EMOJIS[area.slug] ?? '📍'}
-                  </div>
-                  <div className="font-bold text-gray-900 text-sm leading-snug group-hover:text-[#7F77DD] transition-colors">
-                    {area.name}
-                  </div>
-                  <div className="text-xs text-gray-400 mt-1">
-                    {area._count.venues} venue{area._count.venues !== 1 ? 's' : ''}
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
 
       {/* ── 6. MAP ───────────────────────────────────────────────────────────── */}
       <section className="py-14 px-4 relative" style={{ background: '#F3F1FF' }}>

@@ -26,7 +26,22 @@ type Venue = {
   area: { slug: string; name: string }
 }
 
+type Area = {
+  id: string
+  slug: string
+  name: string
+  _count: { venues: number }
+}
+
 const PAGE_SIZE = 12
+
+const AREA_EMOJIS: Record<string, string> = {
+  'south-london': '🌉', 'north-london': '🏙️', 'east-london': '🗼', 'west-london': '🎡',
+  'central-london': '🎭', 'city-centre': '🏛️', 'solihull': '🌿', 'sutton-coldfield': '🌲',
+  'wolverhampton': '🏭', 'dudley': '⚙️', 'walsall': '🔵', 'sandwell': '🟠',
+  'salford': '🎭', 'trafford': '⚽', 'stockport': '🌧️', 'bolton': '🌼',
+  'wigan': '🍺', 'oldham': '🏔️', 'rochdale': '🌾', 'bury': '🟤', 'altrincham': '🍃',
+}
 
 const AGE_GROUPS = [
   { label: 'Under 2s', icon: '👶', bg: '#FEF3C7', text: '#92400E', accent: '#F59E0B', keyword: 'under 2' },
@@ -114,9 +129,11 @@ type Sort = 'rating' | 'reviews' | 'newest' | 'distance'
 export default function CityPageInteractive({
   venues,
   city,
+  areas,
 }: {
   venues: Venue[]
   city: { slug: string; name: string; colour: string }
+  areas: Area[]
 }) {
   const {
     userLocation, setUserLocation,
@@ -191,10 +208,8 @@ export default function CityPageInteractive({
 
   const hasFilters = ageFilter !== null || catFilter !== null
 
-  return (
-    <>
-      {/* SECTION 3 — Browse by age */}
-      <section className="py-14 px-4 relative" style={{ background: '#F3F1FF' }}>
+  const browseByAge = (
+    <section className="py-14 px-4 relative" style={{ background: '#F3F1FF' }}>
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center gap-3 mb-2">
             <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight">Browse by age</h2>
@@ -228,9 +243,10 @@ export default function CityPageInteractive({
           </div>
         </div>
       </section>
+  )
 
-      {/* SECTION 4 — Browse by category */}
-      <section className="py-14 px-4 relative" style={{ background: '#EBE8FF' }}>
+  const browseByType = (
+    <section className="py-14 px-4 relative" style={{ background: '#EBE8FF' }}>
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center gap-3 mb-2">
             <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight">Browse by type</h2>
@@ -264,9 +280,45 @@ export default function CityPageInteractive({
           </div>
         </div>
       </section>
+  )
 
-      {/* SECTION 7 — All venues with filters */}
-      <section id="venue-grid" className="py-14 px-4 relative" style={{ background: '#F3F1FF' }}>
+  const browseByArea = areas.length > 0 ? (
+    <section className="py-14 px-4 relative overflow-hidden" style={{ background: '#EBE8FF' }}>
+      <div className="absolute inset-0 pointer-events-none select-none overflow-hidden">
+        <span className="absolute top-5 left-[4%] text-xl opacity-[0.12]">✦</span>
+        <span className="absolute top-12 right-[6%] text-2xl opacity-[0.10]">✶</span>
+        <span className="absolute bottom-6 left-[10%] text-lg opacity-[0.10]">✨</span>
+        <span className="absolute bottom-8 right-[4%] text-xl opacity-[0.12]">✦</span>
+      </div>
+      <div className="relative z-10 max-w-7xl mx-auto">
+        <div className="flex items-center gap-3 mb-2">
+          <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight">Browse by area</h2>
+          <span className="text-2xl">🗺️</span>
+        </div>
+        <p className="text-gray-500 mb-8">Explore soft plays in a specific neighbourhood</p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+          {areas.map((area) => (
+            <Link
+              key={area.id}
+              href={`/${city.slug}/${area.slug}`}
+              className="group bg-white rounded-2xl p-5 shadow-sm hover:shadow-lg transition-all duration-200 hover:scale-[1.03] text-center"
+            >
+              <div className="text-3xl mb-2 select-none">{AREA_EMOJIS[area.slug] ?? '📍'}</div>
+              <div className="font-bold text-gray-900 text-sm leading-snug group-hover:text-[#7F77DD] transition-colors">
+                {area.name}
+              </div>
+              <div className="text-xs text-gray-400 mt-1">
+                {area._count.venues} venue{area._count.venues !== 1 ? 's' : ''}
+              </div>
+            </Link>
+          ))}
+        </div>
+      </div>
+    </section>
+  ) : null
+
+  const venueGrid = (
+    <section id="venue-grid" className="py-14 px-4 relative" style={{ background: '#F3F1FF' }}>
         <div className="max-w-7xl mx-auto">
 
           {/* Postcode search banner */}
@@ -395,6 +447,12 @@ export default function CityPageInteractive({
           )}
         </div>
       </section>
-    </>
   )
+
+  // When a postcode search is active: venue grid first, then browse sections
+  // Default: browse sections first, then venue grid
+  if (postcodeQuery) {
+    return <>{venueGrid}{browseByAge}{browseByType}{browseByArea}</>
+  }
+  return <>{browseByAge}{browseByType}{browseByArea}{venueGrid}</>
 }
