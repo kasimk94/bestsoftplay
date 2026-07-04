@@ -11,13 +11,19 @@ interface VenuePhotoProps {
 }
 
 function FallbackPlaceholder({ name, color }: { name: string; color: string }) {
+  const initial = name.trim().charAt(0).toUpperCase() || '?'
   return (
     <div
-      className="absolute inset-0 flex flex-col items-center justify-center gap-2 select-none"
+      className="absolute inset-0 flex flex-col items-center justify-center gap-2.5 select-none"
       style={{ backgroundColor: color }}
     >
-      <span className="text-5xl opacity-70">🎪</span>
-      <span className="text-white/70 text-xs font-semibold text-center px-4 line-clamp-2 leading-snug">
+      <div
+        className="w-14 h-14 rounded-full flex items-center justify-center shadow-inner"
+        style={{ backgroundColor: 'rgba(255,255,255,0.18)', border: '2px solid rgba(255,255,255,0.25)' }}
+      >
+        <span className="text-2xl font-black text-white leading-none">{initial}</span>
+      </div>
+      <span className="text-white/70 text-[11px] font-semibold text-center px-4 line-clamp-2 leading-snug max-w-[90%]">
         {name}
       </span>
     </div>
