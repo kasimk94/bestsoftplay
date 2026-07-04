@@ -11,6 +11,18 @@ import { prisma } from '@/lib/prisma'
 import { excludeNonSoftPlay } from '@/lib/venueFilters'
 export const dynamic = 'force-dynamic'
 
+const UK_POSTCODE_RE = /^[A-Z]{1,2}[0-9][0-9A-Z]?\s*[0-9][A-Z]{2}$/i
+
+async function geocodePostcode(postcode: string) {
+  try {
+    const clean = postcode.replace(/\s+/g, '').toUpperCase()
+    const res = await fetch(`https://api.postcodes.io/postcodes/${clean}`, { next: { revalidate: 86400 } })
+    if (!res.ok) return null
+    const data = await res.json()
+    return data.status === 200 ? { lat: data.result.latitude as number, lng: data.result.longitude as number } : null
+  } catch { return null }
+}
+
 // ── City visual config ────────────────────────────────────────────────────────
 
 const CITY_CONFIG: Record<string, { gradient: string; scatter: string[] }> = {
@@ -73,6 +85,7 @@ function inCityBbox(slug: string, lat: number | null, lng: number | null): boole
 
 interface Props {
   params: { city: string }
+  searchParams: { postcode?: string }
 }
 
 async function getCityData(slug: string) {
@@ -119,10 +132,18 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
-export default async function CityPage({ params }: Props) {
+export default async function CityPage({ params, searchParams }: Props) {
   const data = await getCityData(params.city)
   if (!data) notFound()
   const { city, venues } = data
+
+  // Pre-trigger inline postcode search when arriving via /{city}?postcode=...
+  const postcodeParam = searchParams.postcode?.trim().toUpperCase()
+  let initialLocation: { postcode: string; lat: number; lng: number } | null = null
+  if (postcodeParam && UK_POSTCODE_RE.test(postcodeParam)) {
+    const geo = await geocodePostcode(postcodeParam)
+    if (geo) initialLocation = { postcode: postcodeParam, ...geo }
+  }
 
   const config = CITY_CONFIG[city.slug] ?? CITY_CONFIG.london
   const faqData = FAQ_DATA[city.slug] ?? FAQ_DATA.london
@@ -204,7 +225,12 @@ export default async function CityPage({ params }: Props) {
           <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black text-white tracking-tight leading-none mb-4 drop-shadow-xl">
             {city.name}
           </h1>
-          <CityHeroLocation venues={serializedInBbox} totalCount={venues.length} cityName={city.name} />
+          <CityHeroLocation
+            venues={serializedInBbox}
+            totalCount={venues.length}
+            cityName={city.name}
+            initialLocation={initialLocation}
+          />
         </div>
       </section>
 

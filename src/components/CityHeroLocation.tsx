@@ -85,10 +85,12 @@ export default function CityHeroLocation({
   venues,
   totalCount,
   cityName,
+  initialLocation,
 }: {
   venues: VenueFull[]
   totalCount: number
   cityName: string
+  initialLocation?: { postcode: string; lat: number; lng: number } | null
 }) {
   const { setUserLocation, triggerNearestSort, setPostcodeQuery, searchReset } = useCityLocation()
   const [nearbyVenues, setNearbyVenues] = useState<NearbyVenue[]>([])
@@ -104,6 +106,14 @@ export default function CityHeroLocation({
       setCaption(null)
     }
   }, [searchReset])
+
+  // Auto-trigger inline search when arriving via /{city}?postcode= URL
+  useEffect(() => {
+    if (initialLocation) {
+      handlePostcodeSearch(initialLocation.postcode, initialLocation.lat, initialLocation.lng)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Shared logic for processing any lat/lng (geolocation or geocoded postcode)
   const processCoords = (lat: number, lng: number) => {
@@ -164,7 +174,11 @@ export default function CityHeroLocation({
     <>
       <p className="text-white/75 text-xl font-semibold mb-10">{subtitle}</p>
       <div className="flex justify-center">
-        <SearchBar onLocation={handleLocation} onPostcodeSearch={handlePostcodeSearch} />
+        <SearchBar
+          onLocation={handleLocation}
+          onPostcodeSearch={handlePostcodeSearch}
+          initialQuery={initialLocation?.postcode}
+        />
       </div>
 
       {caption && !showMap && (

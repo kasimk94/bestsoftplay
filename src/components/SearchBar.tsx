@@ -6,7 +6,22 @@ import { useRouter } from 'next/navigation'
 const UK_POSTCODE_RE = /^[A-Z]{1,2}[0-9][0-9A-Z]?\s*[0-9][A-Z]{2}$/i
 const POSTCODE_PARTIAL_RE = /^[A-Z]{1,2}[0-9]/i
 
+// City bounding boxes — must stay in sync with CityMapInner CITY_BOUNDS
+const CITY_BBOXES = [
+  { slug: 'london',     minLat: 51.2,  maxLat: 51.7,  minLng: -0.6,  maxLng: 0.4   },
+  { slug: 'birmingham', minLat: 52.35, maxLat: 52.75, minLng: -2.3,  maxLng: -1.70 },
+  { slug: 'manchester', minLat: 53.35, maxLat: 53.65, minLng: -2.5,  maxLng: -1.9  },
+]
+
+function detectCity(lat: number, lng: number): string | null {
+  return CITY_BBOXES.find(
+    c => lat >= c.minLat && lat <= c.maxLat && lng >= c.minLng && lng <= c.maxLng
+  )?.slug ?? null
+}
+
 type Props = {
+  /** Pre-fill the search input (e.g. from a ?postcode= URL param) */
+  initialQuery?: string
   /** City-page mode: called with geolocation result instead of navigating */
   onLocation?: (pos: GeolocationPosition) => void
   /** City-page mode: called with geocoded postcode instead of navigating to /search */
@@ -39,8 +54,8 @@ async function fetchSuggestions(partial: string): Promise<string[]> {
   }
 }
 
-export default function SearchBar({ onLocation, onPostcodeSearch }: Props) {
-  const [query, setQuery] = useState('')
+export default function SearchBar({ initialQuery, onLocation, onPostcodeSearch }: Props) {
+  const [query, setQuery] = useState(initialQuery ?? '')
   const [locStatus, setLocStatus] = useState<'idle' | 'loading' | 'error'>('idle')
   const [searchStatus, setSearchStatus] = useState<'idle' | 'loading' | 'error'>('idle')
   const [suggestions, setSuggestions] = useState<string[]>([])
@@ -50,9 +65,9 @@ export default function SearchBar({ onLocation, onPostcodeSearch }: Props) {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
-  // Autocomplete: only when on a city page (onPostcodeSearch provided) and input looks postcode-like
+  // Autocomplete: fires for any postcode-like input (both homepage and city pages)
   const runAutocomplete = useCallback(async (q: string) => {
-    if (!onPostcodeSearch || q.length < 2 || !POSTCODE_PARTIAL_RE.test(q)) {
+    if (q.length < 2 || !POSTCODE_PARTIAL_RE.test(q)) {
       setSuggestions([])
       setShowSuggestions(false)
       return
@@ -61,7 +76,7 @@ export default function SearchBar({ onLocation, onPostcodeSearch }: Props) {
     setSuggestions(results)
     setShowSuggestions(results.length > 0)
     setActiveIdx(-1)
-  }, [onPostcodeSearch])
+  }, [])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value
@@ -94,7 +109,6 @@ export default function SearchBar({ onLocation, onPostcodeSearch }: Props) {
     }
   }
 
-  // Close on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
@@ -111,20 +125,33 @@ export default function SearchBar({ onLocation, onPostcodeSearch }: Props) {
     if (!q) return
     setShowSuggestions(false)
 
-    // City-page inline postcode search
-    if (onPostcodeSearch && UK_POSTCODE_RE.test(q)) {
+    if (UK_POSTCODE_RE.test(q)) {
       setSearchStatus('loading')
       const geo = await geocodePostcode(q)
       setSearchStatus('idle')
-      if (geo) {
-        onPostcodeSearch(q, geo.lat, geo.lng)
-      } else {
+
+      if (!geo) {
         setSearchStatus('error')
+        return
+      }
+
+      // City-page mode: trigger inline search
+      if (onPostcodeSearch) {
+        onPostcodeSearch(q, geo.lat, geo.lng)
+        return
+      }
+
+      // Homepage mode: route to the correct city page, or /search for out-of-area
+      const city = detectCity(geo.lat, geo.lng)
+      if (city) {
+        router.push(`/${city}?postcode=${encodeURIComponent(q.toUpperCase())}`)
+      } else {
+        router.push(`/search?q=${encodeURIComponent(q)}`)
       }
       return
     }
 
-    // Fallback: navigate to /search page (homepage or non-postcode query)
+    // Non-postcode: navigate to /search
     router.push(`/search?q=${encodeURIComponent(q)}`)
   }
 
@@ -223,7 +250,7 @@ export default function SearchBar({ onLocation, onPostcodeSearch }: Props) {
         </p>
       )}
       {searchStatus === 'error' && (
-        <p className={`text-sm text-center mt-3 ${onPostcodeSearch ? 'text-white/70' : 'text-red-500'}`}>
+        <p className={`text-sm text-center mt-3 ${onPostcodeSearch || onLocation ? 'text-white/70' : 'text-red-500'}`}>
           📮 Postcode not found — please check and try again
         </p>
       )}
