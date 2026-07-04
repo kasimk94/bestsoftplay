@@ -39,6 +39,7 @@ model Venue {
   isVerified        Boolean  @default(false)
   isFeatured        Boolean  @default(false)
   isNew             Boolean  @default(false)
+  isExcluded        Boolean  @default(false)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 }

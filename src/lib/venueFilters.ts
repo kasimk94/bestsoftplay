@@ -1,13 +1,13 @@
 /**
- * Conservative exclusion list — only venues whose entire business model is
- * definitively not soft play and cannot contain a soft play area.
+ * Conservative name-based exclusion list — only venues whose entire business
+ * model is definitively not soft play and cannot contain a soft play area.
  *
  * Leisure centres, trampoline parks, activity centres, bowling alleys etc.
  * are intentionally NOT excluded here because many have soft play areas inside.
  * It's better to show a borderline venue than wrongly hide a real one.
  *
- * Note: the DB has no Google Places type/category field, so name-matching is
- * the only available signal. Keep this list narrow.
+ * Individual venues that are clearly wrong (outdoor parks, gyms) are marked
+ * isExcluded=true in the database via scripts/mark-excluded-venues.js.
  */
 export const SOFT_PLAY_EXCLUDE_KEYWORDS = [
   // Escape rooms — clearly adult entertainment, no soft play possible
@@ -20,9 +20,14 @@ export const SOFT_PLAY_EXCLUDE_KEYWORDS = [
   'Bingo', 'Cinema',
 ]
 
-/** Returns a Prisma AND filter that excludes the above venue types */
+/** Returns a Prisma AND-clause array that excludes name-matched types and DB-flagged venues */
 export function excludeNonSoftPlay() {
-  return SOFT_PLAY_EXCLUDE_KEYWORDS.map((kw) => ({
-    NOT: { name: { contains: kw, mode: 'insensitive' as const } },
-  }))
+  return [
+    // Exclude venues explicitly flagged by the admin/scripts
+    { isExcluded: false } as const,
+    // Exclude by known-bad name keywords
+    ...SOFT_PLAY_EXCLUDE_KEYWORDS.map((kw) => ({
+      NOT: { name: { contains: kw, mode: 'insensitive' as const } },
+    })),
+  ]
 }
