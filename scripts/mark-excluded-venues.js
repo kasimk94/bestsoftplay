@@ -26,6 +26,7 @@ const EXCLUDE_PRIMARY_TYPES = new Set([
   'national_park',
   'state_park',
   'nature_reserve',
+  'playground',
   'gym',
   'fitness_center',
   'sports_complex',
@@ -46,7 +47,10 @@ const INDOOR_PLAY_SIGNALS = [
   'play town', 'play village', 'play house', 'playhouse', 'play land',
   'indoor play', 'adventure play', 'playland', 'funhouse', 'fun house',
   'bounce', 'inflat', 'jungle', 'wacky warehouse', 'toddler',
-  'sensory', 'baby', 'kids',
+  'sensory', 'baby',
+  // NOTE: bare 'kids' was removed — it wrongly protected outdoor venues like
+  // "Langthorne Park Kids Playground" from primaryType-based exclusion.
+  // "Kids" alone signals an audience, not an indoor venue.
   // Trampoline parks — indoor venues often with soft play areas
   'trampoline', 'flip out', 'flipout',
   // Gymnastics / activity centres that host soft play
@@ -86,9 +90,17 @@ function get(url, headers = {}) {
   })
 }
 
+// "play park" must keep its space: stripped to "playpark" it also matches the
+// common British name for an outdoor council playground (e.g. "Apsley Road
+// Playpark"), which would wrongly protect a real outdoor venue.
+const SPACE_SENSITIVE_SIGNALS = new Set(['play park'])
+
 function hasIndoorPlaySignal(name) {
   const lower = name.toLowerCase()
-  return INDOOR_PLAY_SIGNALS.some(s => lower.includes(s))
+  const norm = lower.replace(/\s+/g, '')
+  return INDOOR_PLAY_SIGNALS.some(s =>
+    SPACE_SENSITIVE_SIGNALS.has(s) ? lower.includes(s) : norm.includes(s.replace(/\s+/g, ''))
+  )
 }
 
 function isManualExclusion(name) {
