@@ -116,6 +116,16 @@ async function fetchPlaceDetails(googlePlaceId: string | null, mainRef: string |
   }
 }
 
+const CAFE_KEYWORDS_RE = /(caf[eé]|coffee|\bsnacks?\b|\bkitchen\b|\bfood\b)/i
+
+function detectParkingLabel(text: string): 'Free' | 'Paid' | 'Limited' | null {
+  const lower = text.toLowerCase()
+  if (/free parking/.test(lower)) return 'Free'
+  if (/(paid parking|parking (charge|fee)|pay(ing)? for parking)/.test(lower)) return 'Paid'
+  if (/limited parking/.test(lower)) return 'Limited'
+  return null
+}
+
 function generateFAQs(venue: {
   name: string
   description: string | null
@@ -124,9 +134,7 @@ function generateFAQs(venue: {
   ageMax: number | null
   priceRange: string | null
   area: { name: string }
-}) {
-  const hasCafe = /caf[eé]/i.test(`${venue.features.join(' ')} ${venue.name} ${venue.description ?? ''}`)
-  const hasParking = venue.features.some(f => /parking/i.test(f))
+}, hasCafe: boolean, parkingLabel: string | null) {
 
   const ageAnswer =
     venue.ageMin !== null && venue.ageMax !== null
@@ -152,8 +160,8 @@ function generateFAQs(venue: {
     },
     {
       q: `Is there parking at ${venue.name}?`,
-      a: hasParking
-        ? `Yes, ${venue.name} has parking available. It's worth confirming whether it's free or paid when you book.`
+      a: parkingLabel
+        ? `Yes — ${venue.name} has ${parkingLabel.toLowerCase()} parking. Check their website or call ahead for full details.`
         : `We don't have confirmed parking details for ${venue.name}. Check their website or call ahead to find out about parking nearby.`,
     },
     {
@@ -232,12 +240,14 @@ export default async function VenuePage({ params }: Props) {
   ])
 
   const heroColor = HERO_COLORS[Math.abs(venue.name.charCodeAt(0)) % 4]
-  const faqs = generateFAQs(venue)
   const ageLabel = getAgeLabel(venue.ageMin, venue.ageMax)
-  const cafeSignal = `${venue.features.join(' ')} ${venue.name} ${venue.description ?? ''}`
-  const hasCafe = /caf[eé]/i.test(cafeSignal)
-  const hasParking = venue.features.some((f) => /parking/i.test(f))
+  const reviewText = reviews.map((r) => r.text).join(' ')
+  const cafeSignal = `${venue.features.join(' ')} ${venue.name} ${venue.description ?? ''} ${reviewText}`
+  const hasCafe = CAFE_KEYWORDS_RE.test(cafeSignal)
+  const parkingSignal = `${venue.features.join(' ')} ${venue.description ?? ''} ${reviewText}`
+  const parkingLabel = detectParkingLabel(parkingSignal)
   const hasPartyRooms = venue.features.some((f) => /party/i.test(f))
+  const faqs = generateFAQs(venue, hasCafe, parkingLabel)
   const weekdays = (venue.openingHours as { weekdays?: string[] } | null)?.weekdays ?? []
   const priceLabel = priceLevel !== null ? PRICE_LEVEL_LABELS[priceLevel] : venue.priceRange
   const pageUrl = `https://bestsoftplay.co.uk/${venue.city.slug}/${venue.area.slug}/${venue.slug}`
@@ -419,7 +429,7 @@ export default async function VenuePage({ params }: Props) {
           ageMin={venue.ageMin}
           ageMax={venue.ageMax}
           hasCafe={hasCafe}
-          hasParking={hasParking}
+          parkingLabel={parkingLabel}
           hasPartyRooms={hasPartyRooms}
           areaName={venue.area.name}
         />

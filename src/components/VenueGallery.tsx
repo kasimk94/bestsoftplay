@@ -22,6 +22,8 @@ export default function VenueGallery({ photoRefs, name, fallbackColor }: VenueGa
   const touchStartX = useRef<number | null>(null)
 
   const total = refs.length
+  const totalRef = useRef(total)
+  totalRef.current = total
 
   const goTo = (i: number) => setIndex(((i % total) + total) % total)
   const next = () => goTo(index + 1)
@@ -32,11 +34,15 @@ export default function VenueGallery({ photoRefs, name, fallbackColor }: VenueGa
     setIndex((i) => (i > 0 ? i - 1 : 0))
   }
 
+  // Deliberately excludes `index` from the deps — otherwise every tick's own
+  // setIndex would tear down and recreate the interval, and any transient
+  // re-render could drop a tick. totalRef keeps the callback's modulo current
+  // without needing to restart the timer when a photo fails to load.
   useEffect(() => {
     if (total <= 1 || paused) return
-    const timer = setInterval(() => setIndex((i) => (i + 1) % total), AUTO_ADVANCE_MS)
+    const timer = setInterval(() => setIndex((i) => (i + 1) % totalRef.current), AUTO_ADVANCE_MS)
     return () => clearInterval(timer)
-  }, [total, paused, index])
+  }, [total, paused])
 
   const onTouchStart = (e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX
@@ -60,8 +66,8 @@ export default function VenueGallery({ photoRefs, name, fallbackColor }: VenueGa
   return (
     <div
       className="relative h-[340px] sm:h-[440px] bg-gray-200 overflow-hidden select-none"
-      onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
+      onPointerEnter={(e) => { if (e.pointerType === 'mouse') setPaused(true) }}
+      onPointerLeave={(e) => { if (e.pointerType === 'mouse') setPaused(false) }}
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
     >
