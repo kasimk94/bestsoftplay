@@ -12,6 +12,7 @@ import NearbyVenues from '@/components/NearbyVenues'
 import ReviewsSection, { type VenueReview } from '@/components/ReviewsSection'
 import FAQSection from '@/components/FAQSection'
 import StickyMobileCTA from '@/components/StickyMobileCTA'
+import ShareButton from '@/components/ShareButton'
 import { prisma } from '@/lib/prisma'
 import { excludeNonSoftPlay } from '@/lib/venueFilters'
 
@@ -69,16 +70,25 @@ function haversine(lat1: number, lng1: number, lat2: number, lng2: number): numb
 interface PlaceDetails {
   photoRefs: string[]
   reviews: VenueReview[]
+  priceLevel: number | null
+}
+
+const PRICE_LEVEL_LABELS: Record<number, string> = {
+  0: 'Free',
+  1: '£',
+  2: '££',
+  3: '£££',
+  4: '££££',
 }
 
 async function fetchPlaceDetails(googlePlaceId: string | null, mainRef: string | null): Promise<PlaceDetails> {
   const key = process.env.GOOGLE_PLACES_API_KEY
-  const fallback = { photoRefs: mainRef ? [mainRef] : [], reviews: [] }
+  const fallback = { photoRefs: mainRef ? [mainRef] : [], reviews: [], priceLevel: null }
   if (!googlePlaceId || !key) return fallback
 
   try {
     const res = await fetch(
-      `https://maps.googleapis.com/maps/api/place/details/json?place_id=${googlePlaceId}&fields=photos,reviews&key=${key}`,
+      `https://maps.googleapis.com/maps/api/place/details/json?place_id=${googlePlaceId}&fields=photos,reviews,price_level&key=${key}`,
       { next: { revalidate: 86400 } }
     )
     const data = await res.json()
@@ -99,6 +109,7 @@ async function fetchPlaceDetails(googlePlaceId: string | null, mainRef: string |
     return {
       photoRefs: photoRefs.length > 0 ? photoRefs : fallback.photoRefs,
       reviews,
+      priceLevel: data.result?.price_level ?? null,
     }
   } catch {
     return fallback
@@ -107,13 +118,14 @@ async function fetchPlaceDetails(googlePlaceId: string | null, mainRef: string |
 
 function generateFAQs(venue: {
   name: string
+  description: string | null
   features: string[]
   ageMin: number | null
   ageMax: number | null
   priceRange: string | null
   area: { name: string }
 }) {
-  const hasCafe = venue.features.some(f => /caf[eé]/i.test(f))
+  const hasCafe = /caf[eé]/i.test(`${venue.features.join(' ')} ${venue.name} ${venue.description ?? ''}`)
   const hasParking = venue.features.some(f => /parking/i.test(f))
 
   const ageAnswer =
@@ -183,11 +195,38 @@ function StarRow({ rating }: { rating: number }) {
   )
 }
 
+function to24Hour(h: string, m: string, meridiem: string): string {
+  let hours = parseInt(h, 10) % 12
+  if (/pm/i.test(meridiem)) hours += 12
+  return `${String(hours).padStart(2, '0')}:${m}`
+}
+
+function buildOpeningHoursSchema(weekdays: string[]) {
+  const specs: { '@type': string; dayOfWeek: string; opens: string; closes: string }[] = []
+  const timeRangeRe = /(\d{1,2}):(\d{2})\s*([AP]M)\s*[–-]\s*(\d{1,2}):(\d{2})\s*([AP]M)/i
+
+  for (const entry of weekdays) {
+    const idx = entry.indexOf(': ')
+    if (idx === -1) continue
+    const day = entry.slice(0, idx)
+    const hours = entry.slice(idx + 2)
+    const match = hours.match(timeRangeRe)
+    if (!match) continue
+    specs.push({
+      '@type': 'OpeningHoursSpecification',
+      dayOfWeek: `https://schema.org/${day}`,
+      opens: to24Hour(match[1], match[2], match[3]),
+      closes: to24Hour(match[4], match[5], match[6]),
+    })
+  }
+  return specs
+}
+
 export default async function VenuePage({ params }: Props) {
   const venue = await getVenue(params.venue, params.city, params.area)
   if (!venue) notFound()
 
-  const [{ photoRefs, reviews }, nearby] = await Promise.all([
+  const [{ photoRefs, reviews, priceLevel }, nearby] = await Promise.all([
     fetchPlaceDetails(venue.googlePlaceId, venue.photoReference),
     venue.lat && venue.lng ? getNearbyVenues(venue.cityId, venue.id, venue.lat, venue.lng) : Promise.resolve([]),
   ])
@@ -195,16 +234,25 @@ export default async function VenuePage({ params }: Props) {
   const heroColor = HERO_COLORS[Math.abs(venue.name.charCodeAt(0)) % 4]
   const faqs = generateFAQs(venue)
   const ageLabel = getAgeLabel(venue.ageMin, venue.ageMax)
-  const hasCafe = venue.features.some((f) => /caf[eé]/i.test(f))
+  const cafeSignal = `${venue.features.join(' ')} ${venue.name} ${venue.description ?? ''}`
+  const hasCafe = /caf[eé]/i.test(cafeSignal)
   const hasParking = venue.features.some((f) => /parking/i.test(f))
   const hasPartyRooms = venue.features.some((f) => /party/i.test(f))
   const weekdays = (venue.openingHours as { weekdays?: string[] } | null)?.weekdays ?? []
+  const priceLabel = priceLevel !== null ? PRICE_LEVEL_LABELS[priceLevel] : venue.priceRange
+  const pageUrl = `https://bestsoftplay.co.uk/${venue.city.slug}/${venue.area.slug}/${venue.slug}`
+  const primaryImage = photoRefs[0]
+    ? `https://bestsoftplay.co.uk/api/place-photo?ref=${encodeURIComponent(photoRefs[0])}&w=1200`
+    : null
+
+  const openingHoursSchema = buildOpeningHoursSchema(weekdays)
 
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'LocalBusiness',
     name: venue.name,
     description: venue.description,
+    url: pageUrl,
     address: {
       '@type': 'PostalAddress',
       streetAddress: venue.address,
@@ -212,7 +260,8 @@ export default async function VenuePage({ params }: Props) {
       addressCountry: 'GB',
     },
     telephone: venue.phone,
-    url: venue.website,
+    ...(venue.website && { sameAs: venue.website }),
+    ...(primaryImage && { image: primaryImage }),
     ...(venue.googleRating && {
       aggregateRating: {
         '@type': 'AggregateRating',
@@ -224,6 +273,15 @@ export default async function VenuePage({ params }: Props) {
     }),
     ...(venue.lat && venue.lng && {
       geo: { '@type': 'GeoCoordinates', latitude: venue.lat, longitude: venue.lng },
+    }),
+    ...(openingHoursSchema.length > 0 && { openingHoursSpecification: openingHoursSchema }),
+    ...(reviews.length > 0 && {
+      review: reviews.map((r) => ({
+        '@type': 'Review',
+        author: { '@type': 'Person', name: r.authorName },
+        reviewRating: { '@type': 'Rating', ratingValue: r.rating, bestRating: 5, worstRating: 1 },
+        reviewBody: r.text,
+      })),
     }),
   }
 
@@ -279,24 +337,42 @@ export default async function VenuePage({ params }: Props) {
           )}
         </div>
 
-        {venue.googleRating && (
-          <div className="flex items-center gap-2 mb-3">
-            <StarRow rating={venue.googleRating} />
-            <span className="font-bold text-gray-900">{venue.googleRating.toFixed(1)}</span>
-            {venue.googleReviewCount && (
-              <a
-                href={venue.googlePlaceId ? `https://www.google.com/maps/place/?q=place_id:${venue.googlePlaceId}` : '#reviews'}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm text-gray-500 hover:text-[#7F77DD] hover:underline"
-              >
-                ({venue.googleReviewCount.toLocaleString()} reviews)
-              </a>
-            )}
-          </div>
-        )}
+        <div className="flex flex-wrap items-center gap-2 mb-3">
+          {venue.googleRating && (
+            <>
+              <StarRow rating={venue.googleRating} />
+              <span className="font-bold text-gray-900">{venue.googleRating.toFixed(1)}</span>
+              {venue.googleReviewCount && (
+                <a
+                  href={venue.googlePlaceId ? `https://www.google.com/maps/place/?q=place_id:${venue.googlePlaceId}` : '#reviews'}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-gray-500 hover:text-[#7F77DD] hover:underline"
+                >
+                  ({venue.googleReviewCount.toLocaleString()} reviews)
+                </a>
+              )}
+            </>
+          )}
+          {priceLabel ? (
+            <span className="inline-flex items-center bg-[#F4F3FB] text-[#5F56C8] text-sm font-bold px-2.5 py-1 rounded-full">
+              {priceLabel}
+            </span>
+          ) : venue.website ? (
+            <a
+              href={venue.website}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm text-gray-500 hover:text-[#7F77DD] hover:underline"
+            >
+              Typical price: varies · check website
+            </a>
+          ) : (
+            <span className="text-sm text-gray-500">Typical price: varies</span>
+          )}
+        </div>
 
-        <p className="flex items-center gap-1.5 text-sm text-gray-500 mb-8">
+        <p className="flex items-center gap-1.5 text-sm text-gray-500 mb-2">
           <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -304,8 +380,16 @@ export default async function VenuePage({ params }: Props) {
           {venue.address}{venue.postcode ? `, ${venue.postcode}` : ''}
         </p>
 
+        {venue.phone && (
+          <p className="mb-6">
+            <a href={`tel:${venue.phone}`} className="text-sm text-[#7F77DD] font-semibold hover:underline">
+              📞 {venue.phone}
+            </a>
+          </p>
+        )}
+
         {/* Action buttons */}
-        <div className="flex flex-wrap gap-3 mb-8">
+        <div className={`flex flex-wrap gap-3 mb-8 ${venue.phone ? '' : 'mt-6'}`}>
           {venue.website && (
             <a
               href={venue.website}
@@ -326,14 +410,7 @@ export default async function VenuePage({ params }: Props) {
               Get directions →
             </a>
           )}
-          {venue.phone && (
-            <a
-              href={`tel:${venue.phone}`}
-              className="inline-flex items-center gap-2 border border-gray-200 text-gray-700 font-semibold px-5 py-2.5 rounded-xl hover:bg-gray-50 transition-colors text-sm"
-            >
-              {venue.phone}
-            </a>
-          )}
+          <ShareButton name={venue.name} url={pageUrl} />
         </div>
 
         {/* Key info cards */}
@@ -344,6 +421,7 @@ export default async function VenuePage({ params }: Props) {
           hasCafe={hasCafe}
           hasParking={hasParking}
           hasPartyRooms={hasPartyRooms}
+          areaName={venue.area.name}
         />
 
         <VenueAbout description={venue.description} features={venue.features} />

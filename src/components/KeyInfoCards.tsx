@@ -5,6 +5,7 @@ interface KeyInfoCardsProps {
   hasCafe: boolean
   hasParking: boolean
   hasPartyRooms: boolean
+  areaName: string
 }
 
 export function getAgeLabel(ageMin: number | null, ageMax: number | null): string | null {
@@ -14,32 +15,46 @@ export function getAgeLabel(ageMin: number | null, ageMax: number | null): strin
   return null
 }
 
-function Card({ emoji, label, value }: { emoji: string; label: string; value: string }) {
+interface CardSpec {
+  emoji: string
+  label: string
+  value: string
+  bg: string
+  fg: string
+}
+
+function Card({ emoji, label, value, bg, fg }: CardSpec) {
   return (
-    <div className="flex-shrink-0 flex items-center gap-2.5 bg-white border border-gray-100 rounded-2xl px-4 py-3 shadow-sm">
+    <div
+      className="flex-shrink-0 flex items-center gap-2.5 rounded-2xl px-4 py-3"
+      style={{ backgroundColor: bg }}
+    >
       <span className="text-xl leading-none">{emoji}</span>
       <div className="leading-tight">
-        <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">{label}</p>
-        <p className="text-sm font-bold text-gray-900">{value}</p>
+        <p className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: fg, opacity: 0.75 }}>{label}</p>
+        <p className="text-sm font-bold" style={{ color: fg }}>{value}</p>
       </div>
     </div>
   )
 }
 
 export default function KeyInfoCards({
-  googleRating, ageMin, ageMax, hasCafe, hasParking, hasPartyRooms,
+  googleRating, ageMin, ageMax, hasCafe, hasParking, hasPartyRooms, areaName,
 }: KeyInfoCardsProps) {
-  const ageLabel = getAgeLabel(ageMin, ageMax)
+  const ageLabel = getAgeLabel(ageMin, ageMax) ?? 'All ages'
 
-  const cards: { emoji: string; label: string; value: string }[] = []
+  const cards: CardSpec[] = []
 
-  if (googleRating !== null) cards.push({ emoji: '⭐', label: 'Rating', value: `${googleRating.toFixed(1)} / 5` })
-  if (ageLabel) cards.push({ emoji: '👶', label: 'Age range', value: ageLabel })
-  if (hasCafe) cards.push({ emoji: '☕', label: 'Café', value: 'Yes' })
-  if (hasParking) cards.push({ emoji: '🅿️', label: 'Parking', value: 'Available' })
-  if (hasPartyRooms) cards.push({ emoji: '🎉', label: 'Party rooms', value: 'Yes' })
-
-  if (cards.length === 0) return null
+  if (googleRating !== null) {
+    cards.push({ emoji: '⭐', label: 'Rating', value: `${googleRating.toFixed(1)}/5`, bg: '#FEF3C7', fg: '#92400E' })
+  }
+  cards.push({ emoji: '👶', label: 'Age range', value: ageLabel, bg: '#F4F3FB', fg: '#5F56C8' })
+  cards.push({ emoji: '☕', label: 'Café', value: hasCafe ? 'Yes' : 'No', bg: '#FBEAE0', fg: '#9A4A24' })
+  cards.push({ emoji: '🅿️', label: 'Parking', value: hasParking ? 'Available' : 'Unknown', bg: '#E0F2FE', fg: '#0369A1' })
+  if (hasPartyRooms) {
+    cards.push({ emoji: '🎉', label: 'Party rooms', value: 'Yes', bg: '#FCE7F3', fg: '#9D174D' })
+  }
+  cards.push({ emoji: '📍', label: 'Area', value: areaName, bg: '#E8F7F3', fg: '#16785A' })
 
   return (
     <div className="flex gap-3 overflow-x-auto pb-2 mb-8 -mx-1 px-1">
