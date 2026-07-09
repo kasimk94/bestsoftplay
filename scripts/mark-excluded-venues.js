@@ -66,6 +66,9 @@ const MANUAL_EXCLUSIONS = [
   'Forest Lane Play Area',
   // Leisure centres / gyms
   'East Ham Leisure Centre',
+  // Escape rooms / laser tag / activity centres — no soft play
+  'Activate Islington Square',
+  'Activate Vauxhall',
   // Specific mismatched venues to hide
 ]
 
