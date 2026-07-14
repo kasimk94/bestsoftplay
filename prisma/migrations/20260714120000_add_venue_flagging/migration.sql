@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "Venue" ADD COLUMN "flagged" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "Venue" ADD COLUMN "flagNote" TEXT;

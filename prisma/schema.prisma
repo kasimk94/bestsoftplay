@@ -40,6 +40,8 @@ model Venue {
   isFeatured        Boolean  @default(false)
   isNew             Boolean  @default(false)
   isExcluded        Boolean  @default(false)
+  flagged           Boolean  @default(false)
+  flagNote          String?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 }
