@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic'
 
 const PAGE_SIZE = 20
 
-type Filter = 'all' | 'flagged' | 'noimage'
+type Filter = 'all' | 'flagged' | 'noimage' | 'lowconfidence'
 
 function buildWhere(filter: Filter): Prisma.VenueWhereInput {
   if (filter === 'flagged') return { flagged: true }
@@ -19,6 +19,7 @@ function buildWhere(filter: Filter): Prisma.VenueWhereInput {
       photoReference: null,
     }
   }
+  if (filter === 'lowconfidence') return { qualityScore: { lt: 70 } }
   return {}
 }
 
@@ -36,7 +37,9 @@ export default async function VenueReviewPage({
   searchParams: { filter?: string; page?: string }
 }) {
   const filter: Filter =
-    searchParams.filter === 'flagged' || searchParams.filter === 'noimage'
+    searchParams.filter === 'flagged' ||
+    searchParams.filter === 'noimage' ||
+    searchParams.filter === 'lowconfidence'
       ? searchParams.filter
       : 'all'
 
@@ -66,7 +69,7 @@ export default async function VenueReviewPage({
       </p>
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-        {(['all', 'flagged', 'noimage'] as Filter[]).map((f) => (
+        {(['all', 'flagged', 'noimage', 'lowconfidence'] as Filter[]).map((f) => (
           <Link
             key={f}
             href={buildHref(f, 1)}
@@ -80,7 +83,13 @@ export default async function VenueReviewPage({
               color: filter === f ? '#fff' : '#111',
             }}
           >
-            {f === 'all' ? 'All venues' : f === 'flagged' ? 'Flagged only' : 'No image only'}
+            {f === 'all'
+              ? 'All venues'
+              : f === 'flagged'
+                ? 'Flagged only'
+                : f === 'noimage'
+                  ? 'No image only'
+                  : 'Low confidence (<70%)'}
           </Link>
         ))}
       </div>
@@ -155,7 +164,23 @@ export default async function VenueReviewPage({
 
               <div style={{ padding: 10 }}>
                 <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 2 }}>{venue.name}</div>
-                <div style={{ fontSize: 12, color: '#666', marginBottom: 8 }}>{venue.city.name}</div>
+                <div style={{ fontSize: 12, color: '#666', marginBottom: 4 }}>{venue.city.name}</div>
+
+                {venue.qualityScore !== null && (
+                  <div style={{ fontSize: 11, marginBottom: 6 }}>
+                    <span
+                      style={{
+                        fontWeight: 700,
+                        color: venue.qualityScore < 70 ? '#dc2626' : '#16a34a',
+                      }}
+                    >
+                      Quality: {venue.qualityScore}%
+                    </span>
+                    {venue.qualityReason && (
+                      <span style={{ color: '#666' }}> — {venue.qualityReason}</span>
+                    )}
+                  </div>
+                )}
 
                 {venue.flagged && venue.flagNote && (
                   <div style={{ fontSize: 11, color: '#dc2626', marginBottom: 6 }}>
