@@ -184,8 +184,6 @@ function ToastStack({ pending, onUndo }: { pending: PendingDelete[]; onUndo: (to
   )
 }
 
-const PAGE_SIZE = 100
-
 function VenueCard({
   venue,
   onDelete,
@@ -257,7 +255,7 @@ export default function VenueReviewClient({
   const [pending, setPending] = useState<PendingDelete[]>([])
   const timersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
 
-  const visible = queue.slice(0, PAGE_SIZE)
+  const visible = queue
 
   function handleKeep(venue: ReviewVenue) {
     markReviewed(venue.id).catch((err) => console.error('markReviewed failed', err))
