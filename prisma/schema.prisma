@@ -44,6 +44,7 @@ model Venue {
   flagNote          String?
   qualityScore      Int?
   qualityReason     String?
+  manuallyReviewed  Boolean  @default(false)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 }
