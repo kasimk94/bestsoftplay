@@ -184,7 +184,7 @@ function ToastStack({ pending, onUndo }: { pending: PendingDelete[]; onUndo: (to
   )
 }
 
-const PAGE_SIZE = 50
+const PAGE_SIZE = 100
 
 function VenueCard({
   venue,
