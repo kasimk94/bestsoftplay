@@ -184,6 +184,68 @@ function ToastStack({ pending, onUndo }: { pending: PendingDelete[]; onUndo: (to
   )
 }
 
+const PAGE_SIZE = 20
+
+function VenueCard({
+  venue,
+  onDelete,
+  onKeep,
+}: {
+  venue: ReviewVenue
+  onDelete: (venue: ReviewVenue) => void
+  onKeep: (venue: ReviewVenue) => void
+}) {
+  const imageSrc = imageSrcFor(venue)
+
+  return (
+    <div style={{ border: '1px solid #ddd', borderRadius: 8, overflow: 'hidden', background: '#fff', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ height: 130, background: '#eee' }}>
+        {imageSrc ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={imageSrc} alt={venue.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        ) : (
+          <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: '#999' }}>
+            No image
+          </div>
+        )}
+      </div>
+
+      <div style={{ padding: 12, display: 'flex', flexDirection: 'column', flex: 1 }}>
+        <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 2 }}>{venue.name}</div>
+        <div style={{ fontSize: 12, color: '#666', marginBottom: 6 }}>
+          {venue.city.name} — {venue.address}
+        </div>
+
+        {venue.qualityScore !== null ? (
+          <div style={{ fontSize: 12, marginBottom: 6 }}>
+            <span style={{ fontWeight: 700, color: venue.qualityScore < 70 ? '#dc2626' : '#16a34a' }}>
+              Quality: {venue.qualityScore}%
+            </span>
+            {venue.qualityReason && <span style={{ color: '#666' }}> — {venue.qualityReason}</span>}
+          </div>
+        ) : (
+          <div style={{ fontSize: 12, color: '#999', marginBottom: 6 }}>Not yet classified</div>
+        )}
+
+        {venue.flagged && (
+          <div style={{ fontSize: 11, color: '#dc2626', marginBottom: 6 }}>
+            🚩 Previously flagged{venue.flagNote ? `: ${venue.flagNote}` : ''}
+          </div>
+        )}
+
+        <div style={{ display: 'flex', gap: 8, marginTop: 'auto', paddingTop: 8 }}>
+          <button onClick={() => onDelete(venue)} style={{ ...btnBase, flex: 1, fontSize: 13, padding: '8px 0', background: '#dc2626', color: '#fff' }}>
+            Delete
+          </button>
+          <button onClick={() => onKeep(venue)} style={{ ...btnBase, flex: 1, fontSize: 13, padding: '8px 0', background: '#16a34a', color: '#fff' }}>
+            Keep
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function VenueReviewClient({
   initialVenues,
   filterLabel,
@@ -195,20 +257,17 @@ export default function VenueReviewClient({
   const [pending, setPending] = useState<PendingDelete[]>([])
   const timersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
 
-  const current = queue[0]
+  const visible = queue.slice(0, PAGE_SIZE)
 
-  function handleKeep() {
-    if (!current) return
-    markReviewed(current.id).catch((err) => console.error('markReviewed failed', err))
-    setQueue((q) => q.slice(1))
+  function handleKeep(venue: ReviewVenue) {
+    markReviewed(venue.id).catch((err) => console.error('markReviewed failed', err))
+    setQueue((q) => q.filter((v) => v.id !== venue.id))
   }
 
-  function handleDelete() {
-    if (!current) return
-    const venue = current
+  function handleDelete(venue: ReviewVenue) {
     const toastId = `${venue.id}-${Date.now()}`
 
-    setQueue((q) => q.slice(1))
+    setQueue((q) => q.filter((v) => v.id !== venue.id))
     setPending((p) => [...p, { toastId, venue }])
 
     const timer = setTimeout(async () => {
@@ -244,15 +303,13 @@ export default function VenueReviewClient({
     setQueue((q) => q.filter((v) => !v.name.toLowerCase().includes(lower)))
   }
 
-  const imageSrc = current ? imageSrcFor(current) : null
-
   return (
     <div>
       <BulkDeleteByName onDeleted={handleBulkDeleted} />
 
       {initialVenues.length === 0 ? (
         <p style={{ fontSize: 14, color: '#666' }}>No venues match this filter.</p>
-      ) : !current ? (
+      ) : queue.length === 0 ? (
         <p style={{ fontSize: 15, fontWeight: 600 }}>All venues in this list reviewed.</p>
       ) : (
         <>
@@ -260,50 +317,10 @@ export default function VenueReviewClient({
             {queue.length} remaining <span style={{ fontWeight: 400, color: '#666', fontSize: 13 }}>({filterLabel})</span>
           </p>
 
-          <div style={{ display: 'flex', gap: 20, border: '1px solid #ddd', borderRadius: 8, padding: 16, background: '#fff', maxWidth: 760 }}>
-            <div style={{ width: 220, height: 160, flexShrink: 0, background: '#eee', borderRadius: 6, overflow: 'hidden' }}>
-              {imageSrc ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={imageSrc} alt={current.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              ) : (
-                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: '#999' }}>
-                  No image
-                </div>
-              )}
-            </div>
-
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 18, fontWeight: 700 }}>{current.name}</div>
-              <div style={{ fontSize: 13, color: '#666', marginBottom: 8 }}>
-                {current.city.name} — {current.address}
-              </div>
-
-              {current.qualityScore !== null ? (
-                <div style={{ fontSize: 13, marginBottom: 12 }}>
-                  <span style={{ fontWeight: 700, color: current.qualityScore < 70 ? '#dc2626' : '#16a34a' }}>
-                    Quality: {current.qualityScore}%
-                  </span>
-                  {current.qualityReason && <span style={{ color: '#666' }}> — {current.qualityReason}</span>}
-                </div>
-              ) : (
-                <div style={{ fontSize: 13, color: '#999', marginBottom: 12 }}>Not yet classified</div>
-              )}
-
-              {current.flagged && (
-                <div style={{ fontSize: 12, color: '#dc2626', marginBottom: 10 }}>
-                  🚩 Previously flagged{current.flagNote ? `: ${current.flagNote}` : ''}
-                </div>
-              )}
-
-              <div style={{ display: 'flex', gap: 10 }}>
-                <button onClick={handleDelete} style={{ ...btnBase, background: '#dc2626', color: '#fff' }}>
-                  Delete
-                </button>
-                <button onClick={handleKeep} style={{ ...btnBase, background: '#16a34a', color: '#fff' }}>
-                  Keep
-                </button>
-              </div>
-            </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: 16 }}>
+            {visible.map((venue) => (
+              <VenueCard key={venue.id} venue={venue} onDelete={handleDelete} onKeep={handleKeep} />
+            ))}
           </div>
         </>
       )}
