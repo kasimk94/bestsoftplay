@@ -421,6 +421,47 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {/* Why BestSoftPlay */}
+      <section className="bg-white py-16 px-4">
+        <div className="max-w-3xl mx-auto">
+          <div className="flex items-center gap-3 mb-6">
+            <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight">Why BestSoftPlay</h2>
+            <span className="text-2xl">💜</span>
+          </div>
+
+          <p className="text-gray-700 leading-relaxed mb-5">
+            BestSoftPlay is the UK&apos;s most complete directory of indoor soft play centres, built to save parents
+            the guesswork that usually comes with a rainy Saturday and a restless toddler. Instead of scrolling
+            through outdated blog posts or generic listings sites, you get one place to compare venues across
+            London, Birmingham, and Manchester, filtered by age range and the facilities that actually matter, like
+            on-site cafes, free parking, and dedicated party rooms.
+          </p>
+
+          <p className="text-gray-700 leading-relaxed mb-5">
+            Every venue on BestSoftPlay is a genuine, currently operating indoor soft play centre, not a public
+            playground, trampoline park, or a cafe with a small corner of foam blocks. We pull real ratings and
+            review counts directly from Google, so the star rating you see reflects actual visits from other
+            parents rather than marketing copy. Listings that look doubtful get checked by hand before they go
+            live, and we regularly review the whole directory to catch venues that have closed down or changed
+            since we last looked.
+          </p>
+
+          <p className="text-gray-700 leading-relaxed mb-5">
+            In London, coverage spans South London favourites in Croydon and Greenwich through to buggy-friendly
+            spots in Islington and Chelsea, across all corners of the capital. In Birmingham, listings stretch from
+            the city centre out to Solihull and Sutton Coldfield. In Manchester, you will find venues across the
+            city centre as well as Salford, Trafford, and Stockport.
+          </p>
+
+          <p className="text-gray-700 leading-relaxed">
+            Whether you are after a full day out with climbing frames and slides, a calmer toddler-only session, or
+            simply somewhere with decent coffee while the kids burn off energy, BestSoftPlay makes it quick to find
+            a nearby venue that actually suits your family, and to see what real parents thought of it before you
+            go.
+          </p>
+        </div>
+      </section>
+
       <Footer />
     </>
   )
