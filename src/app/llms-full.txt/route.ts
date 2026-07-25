@@ -23,11 +23,11 @@ const HEADER = (dataCoverageLine: string) => `# BestSoftPlay
 BestSoftPlay is a comprehensive directory of soft play venues across the UK. Parents can search by location, age range, amenities (café, parking, party rooms) and read real Google reviews. All venues include opening hours, photos, addresses and directions.
 
 ## Key pages
-- Homepage: https://www.bestsoftplay.co.uk
-- London soft play venues: https://www.bestsoftplay.co.uk/london
-- Birmingham soft play venues: https://www.bestsoftplay.co.uk/birmingham
-- Manchester soft play venues: https://www.bestsoftplay.co.uk/manchester
-- Parent guides: https://www.bestsoftplay.co.uk/guides
+- [Homepage](https://www.bestsoftplay.co.uk)
+- [London soft play venues](https://www.bestsoftplay.co.uk/london)
+- [Birmingham soft play venues](https://www.bestsoftplay.co.uk/birmingham)
+- [Manchester soft play venues](https://www.bestsoftplay.co.uk/manchester)
+- [Parent guides](https://www.bestsoftplay.co.uk/guides)
 
 ## Data coverage
 - ${dataCoverageLine}
@@ -81,7 +81,7 @@ export async function GET() {
 
   const lines = venues.map((v, i) => {
     const url = `${BASE}/${v.city.slug}/${v.area.slug}/${v.slug}`
-    return `${i + 1}. ${v.name} — ${v.city.name} — ${v.googleRating?.toFixed(1)}★ — ${url}`
+    return `${i + 1}. [${v.name}](${url}) — ${v.city.name} — ${v.googleRating?.toFixed(1)}★`
   })
 
   const content = `${HEADER(dataCoverageLine)}

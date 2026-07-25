@@ -20,11 +20,11 @@ const TEMPLATE = (dataCoverageLine: string) => `# BestSoftPlay
 BestSoftPlay is a comprehensive directory of soft play venues across the UK. Parents can search by location, age range, amenities (café, parking, party rooms) and read real Google reviews. All venues include opening hours, photos, addresses and directions.
 
 ## Key pages
-- Homepage: https://www.bestsoftplay.co.uk
-- London soft play venues: https://www.bestsoftplay.co.uk/london
-- Birmingham soft play venues: https://www.bestsoftplay.co.uk/birmingham
-- Manchester soft play venues: https://www.bestsoftplay.co.uk/manchester
-- Parent guides: https://www.bestsoftplay.co.uk/guides
+- [Homepage](https://www.bestsoftplay.co.uk)
+- [London soft play venues](https://www.bestsoftplay.co.uk/london)
+- [Birmingham soft play venues](https://www.bestsoftplay.co.uk/birmingham)
+- [Manchester soft play venues](https://www.bestsoftplay.co.uk/manchester)
+- [Parent guides](https://www.bestsoftplay.co.uk/guides)
 
 ## Data coverage
 - ${dataCoverageLine}
