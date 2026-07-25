@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
-import Breadcrumb from '@/components/Breadcrumb'
+import PageHero from '@/components/PageHero'
 
 export const metadata: Metadata = {
   title: 'Contact Us',
@@ -11,58 +11,88 @@ export const metadata: Metadata = {
 
 const CONTACT_EMAIL = 'hello@bestsoftplay.co.uk'
 
+const CARD_COLORS = ['#7F77DD', '#1D9E75', '#D85A30', '#F59E0B']
+
+const REASONS = [
+  {
+    icon: '📍',
+    title: 'Incorrect venue details',
+    description: 'The venue name, city, and what\'s wrong (e.g. wrong opening hours, closed down, wrong address).',
+  },
+  {
+    icon: '✨',
+    title: 'Suggest a venue',
+    description: 'The venue\'s name and location so we can look it up and add it.',
+  },
+  {
+    icon: '💼',
+    title: 'Business enquiries',
+    description: 'Run a soft play venue? Update your listing or ask about featuring on the site.',
+  },
+  {
+    icon: '💬',
+    title: 'Something else',
+    description: 'General feedback, bug reports, or anything else on your mind.',
+  },
+]
+
 export default function ContactPage() {
   return (
     <>
       <Navbar />
 
-      <div className="bg-gradient-to-b from-[#F4F3FB] to-white pt-12 pb-8 px-4">
-        <div className="max-w-3xl mx-auto">
-          <Breadcrumb crumbs={[{ label: 'Home', href: '/' }, { label: 'Contact' }]} />
-          <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 tracking-tight leading-tight mb-3">
-            Get in touch
-          </h1>
-          <p className="text-lg text-gray-500">
-            Spotted something wrong, or want to tell us about a venue we&apos;re missing? We&apos;d love to hear from you.
-          </p>
-        </div>
-      </div>
+      <PageHero
+        crumbs={[{ label: 'Home', href: '/' }, { label: 'Contact' }]}
+        title="Get in touch"
+        subtitle="Spotted something wrong, or want to tell us about a venue we're missing? We'd love to hear from you."
+      />
 
-      <article className="max-w-3xl mx-auto px-4 sm:px-6 py-10">
-        <div className="p-8 bg-[#F4F3FB] rounded-2xl mb-10 text-center">
-          <p className="text-sm text-gray-500 mb-2">Email us directly at</p>
-          <a
-            href={`mailto:${CONTACT_EMAIL}`}
-            className="text-2xl sm:text-3xl font-bold text-[#7F77DD] hover:underline break-all"
+      <section className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {/* Email card */}
+        <div className="bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm mb-12 max-w-2xl mx-auto">
+          <div
+            className="h-28 flex items-center justify-center text-5xl"
+            style={{ backgroundColor: CARD_COLORS[0] }}
           >
-            {CONTACT_EMAIL}
-          </a>
-          <p className="text-sm text-gray-500 mt-4">We aim to reply within a few working days.</p>
+            ✉️
+          </div>
+          <div className="p-8 text-center">
+            <p className="text-sm text-gray-500 mb-2">Email us directly at</p>
+            <a
+              href={`mailto:${CONTACT_EMAIL}`}
+              className="text-2xl sm:text-3xl font-bold text-[#7F77DD] hover:underline break-all"
+            >
+              {CONTACT_EMAIL}
+            </a>
+            <p className="text-sm text-gray-500 mt-4">We aim to reply within a few working days.</p>
+          </div>
         </div>
 
-        <div className="prose prose-gray max-w-none">
-          <h2 className="font-bold text-gray-900 text-lg mb-2">What to include</h2>
-          <p className="text-gray-700 leading-relaxed mb-5">
-            To help us sort your message quickly, please let us know what it&apos;s about:
-          </p>
-          <ul className="text-gray-700 leading-relaxed mb-5 list-disc pl-5 space-y-2">
-            <li>
-              <strong>Incorrect venue details</strong> — the venue name, city, and what&apos;s wrong (e.g. wrong opening
-              hours, closed down, wrong address).
-            </li>
-            <li>
-              <strong>Suggest a venue</strong> — the venue&apos;s name and location so we can look it up.
-            </li>
-            <li>
-              <strong>Business enquiries</strong> — if you run a soft play venue and want to update your listing or
-              enquire about featuring on the site.
-            </li>
-            <li>
-              <strong>Something else</strong> — general feedback, bug reports, or anything else on your mind.
-            </li>
-          </ul>
+        <h2 className="text-2xl font-extrabold text-gray-900 tracking-tight text-center mb-2">What to include</h2>
+        <p className="text-gray-500 text-center max-w-xl mx-auto mb-8">
+          To help us sort your message quickly, please let us know what it&apos;s about:
+        </p>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          {REASONS.map((reason, i) => (
+            <div
+              key={reason.title}
+              className="bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm flex flex-col"
+            >
+              <div
+                className="h-20 flex items-center justify-center text-4xl"
+                style={{ backgroundColor: CARD_COLORS[i % CARD_COLORS.length] }}
+              >
+                {reason.icon}
+              </div>
+              <div className="p-6 flex-1">
+                <h3 className="font-bold text-gray-900 text-base leading-snug mb-2">{reason.title}</h3>
+                <p className="text-sm text-gray-500 leading-relaxed">{reason.description}</p>
+              </div>
+            </div>
+          ))}
         </div>
-      </article>
+      </section>
 
       <Footer />
     </>
