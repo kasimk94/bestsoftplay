@@ -1,4 +1,18 @@
-const CONTENT = `# BestSoftPlay
+import { prisma } from '@/lib/prisma'
+
+export const dynamic = 'force-dynamic'
+
+async function getDataCoverageLine() {
+  const cities = await prisma.city.findMany({
+    select: { name: true, _count: { select: { venues: true } } },
+    orderBy: { name: 'asc' },
+  })
+  const total = cities.reduce((sum, c) => sum + c._count.venues, 0)
+  const breakdown = cities.map((c) => `${c._count.venues} ${c.name}`).join(', ')
+  return `${total} verified soft play venues (${breakdown})`
+}
+
+const TEMPLATE = (dataCoverageLine: string) => `# BestSoftPlay
 
 > The UK's largest soft play directory. Helping parents find the perfect indoor play venue for their children across London, Birmingham and Manchester.
 
@@ -13,7 +27,7 @@ BestSoftPlay is a comprehensive directory of soft play venues across the UK. Par
 - Parent guides: https://www.bestsoftplay.co.uk/guides
 
 ## Data coverage
-- 1,000+ verified soft play venues
+- ${dataCoverageLine}
 - 3 UK cities: London, Birmingham, Manchester
 - Real Google ratings and reviews
 - Up-to-date opening hours
@@ -41,7 +55,9 @@ Built with Next.js 14, PostgreSQL database, data sourced from Google Places API 
 `
 
 export async function GET() {
-  return new Response(CONTENT, {
+  const dataCoverageLine = await getDataCoverageLine()
+
+  return new Response(TEMPLATE(dataCoverageLine), {
     headers: {
       'Content-Type': 'text/plain; charset=utf-8',
     },
