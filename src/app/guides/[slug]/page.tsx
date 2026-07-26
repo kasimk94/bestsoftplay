@@ -6,6 +6,7 @@ import Footer from '@/components/Footer'
 import Breadcrumb from '@/components/Breadcrumb'
 import VenueCard from '@/components/VenueCard'
 import { prisma } from '@/lib/prisma'
+import { passesQualityFilter } from '@/lib/venueFilters'
 
 export const dynamic = 'force-dynamic'
 
@@ -21,15 +22,11 @@ async function getGuide(slug: string) {
   }
 }
 
-// Only genuine, currently-confirmed venues (quality-checked or not yet reviewed)
-// should appear in editorial "recommended" lists.
-const QUALITY_FILTER = { OR: [{ qualityScore: null }, { qualityScore: { gte: 70 } }] }
-
 const TODDLER_KEYWORDS = ['toddler', 'baby', 'babies', 'tots', 'under 2', 'under 5', 'tiny', 'little ones']
 
 async function findCityVenuesByKeywords(citySlug: string, keywords: string[], take: number) {
   const venues = await prisma.venue.findMany({
-    where: { city: { slug: citySlug }, isExcluded: false, ...QUALITY_FILTER },
+    where: { city: { slug: citySlug }, isExcluded: false, ...passesQualityFilter() },
     include: { city: true, area: true },
     orderBy: [{ googleRating: 'desc' }, { googleReviewCount: 'desc' }],
   })
@@ -46,7 +43,7 @@ async function findTopAcrossCities(take: number) {
   const results = []
   for (const slug of cities) {
     const venues = await prisma.venue.findMany({
-      where: { city: { slug }, isExcluded: false, googleRating: { not: null }, ...QUALITY_FILTER },
+      where: { city: { slug }, isExcluded: false, googleRating: { not: null }, ...passesQualityFilter() },
       include: { city: true, area: true },
       orderBy: [{ googleRating: 'desc' }, { googleReviewCount: 'desc' }],
       take: perCity,

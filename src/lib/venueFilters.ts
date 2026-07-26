@@ -20,7 +20,22 @@ export const SOFT_PLAY_EXCLUDE_KEYWORDS = [
   'Bingo', 'Cinema',
 ]
 
-/** Returns a Prisma AND-clause array that excludes name-matched types and DB-flagged venues */
+/**
+ * True when a venue has passed the AI genuineness/quality check (or hasn't
+ * been checked yet), or was manually reviewed and kept regardless of score.
+ * A manual "Keep" in the admin review tool always wins over the raw score.
+ */
+export function passesQualityFilter() {
+  return {
+    OR: [
+      { qualityScore: null },
+      { qualityScore: { gte: 70 } },
+      { manuallyReviewed: true },
+    ],
+  }
+}
+
+/** Returns a Prisma AND-clause array that excludes name-matched types, DB-flagged venues, and low-quality/unreviewed venues */
 export function excludeNonSoftPlay() {
   return [
     // Exclude venues explicitly flagged by the admin/scripts
@@ -29,5 +44,8 @@ export function excludeNonSoftPlay() {
     ...SOFT_PLAY_EXCLUDE_KEYWORDS.map((kw) => ({
       NOT: { name: { contains: kw, mode: 'insensitive' as const } },
     })),
+    // Exclude venues that failed the AI quality/genuineness check and haven't
+    // been manually confirmed as a keeper via the admin review tool.
+    passesQualityFilter(),
   ]
 }
