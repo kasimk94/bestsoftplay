@@ -4,6 +4,7 @@ import Link from 'next/link'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import Breadcrumb from '@/components/Breadcrumb'
+import VenueCard from '@/components/VenueCard'
 import { prisma } from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
@@ -17,6 +18,74 @@ async function getGuide(slug: string) {
     return await prisma.guide.findUnique({ where: { slug } })
   } catch {
     return null
+  }
+}
+
+// Only genuine, currently-confirmed venues (quality-checked or not yet reviewed)
+// should appear in editorial "recommended" lists.
+const QUALITY_FILTER = { OR: [{ qualityScore: null }, { qualityScore: { gte: 70 } }] }
+
+const TODDLER_KEYWORDS = ['toddler', 'baby', 'babies', 'tots', 'under 2', 'under 5', 'tiny', 'little ones']
+
+async function findCityVenuesByKeywords(citySlug: string, keywords: string[], take: number) {
+  const venues = await prisma.venue.findMany({
+    where: { city: { slug: citySlug }, isExcluded: false, ...QUALITY_FILTER },
+    include: { city: true, area: true },
+    orderBy: [{ googleRating: 'desc' }, { googleReviewCount: 'desc' }],
+  })
+  const filtered = venues.filter((v) => {
+    const text = `${v.name} ${v.description ?? ''}`.toLowerCase()
+    return keywords.some((k) => text.includes(k))
+  })
+  return filtered.slice(0, take)
+}
+
+async function findTopAcrossCities(take: number) {
+  const cities = ['london', 'birmingham', 'manchester']
+  const perCity = Math.ceil(take / cities.length)
+  const results = []
+  for (const slug of cities) {
+    const venues = await prisma.venue.findMany({
+      where: { city: { slug }, isExcluded: false, googleRating: { not: null }, ...QUALITY_FILTER },
+      include: { city: true, area: true },
+      orderBy: [{ googleRating: 'desc' }, { googleReviewCount: 'desc' }],
+      take: perCity,
+    })
+    results.push(...venues)
+  }
+  return results.slice(0, take)
+}
+
+async function findFreeVsPaidVenues(take: number) {
+  // Lead with a genuinely verified free/community session, then fill with top-rated paid venues.
+  const free = await prisma.venue.findFirst({
+    where: { slug: 'rpca-soft-play' },
+    include: { city: true, area: true },
+  })
+  const paid = await findTopAcrossCities(free ? take - 1 : take)
+  return free ? [free, ...paid.filter((v) => v.id !== free.id)] : paid
+}
+
+async function getGuideVenues(slug: string) {
+  try {
+    switch (slug) {
+      case 'best-soft-plays-toddlers-london':
+        return await findCityVenuesByKeywords('london', TODDLER_KEYWORDS, 8)
+      case 'best-soft-play-toddlers-birmingham':
+        return await findCityVenuesByKeywords('birmingham', TODDLER_KEYWORDS, 8)
+      case 'best-soft-play-toddlers-manchester':
+        return await findCityVenuesByKeywords('manchester', TODDLER_KEYWORDS, 8)
+      case 'rainy-day-indoor-soft-play-guide':
+        return await findTopAcrossCities(8)
+      case 'soft-play-birthday-parties-guide':
+        return await findTopAcrossCities(6)
+      case 'free-vs-paid-soft-play':
+        return await findFreeVsPaidVenues(6)
+      default:
+        return []
+    }
+  } catch {
+    return []
   }
 }
 
@@ -59,6 +128,8 @@ export default async function GuidePage({ params }: Props) {
   const fallback = FALLBACK_GUIDES[params.slug]
 
   if (!dbGuide && !fallback) notFound()
+
+  const venues = await getGuideVenues(params.slug)
 
   const guide = dbGuide ?? {
     id: params.slug,
@@ -107,6 +178,17 @@ export default async function GuidePage({ params }: Props) {
             </p>
           ))}
         </div>
+
+        {venues.length > 0 && (
+          <div className="mt-12">
+            <h2 className="font-bold text-gray-900 text-xl mb-5">Recommended venues</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              {venues.map((venue, i) => (
+                <VenueCard key={venue.id} venue={venue} index={i} />
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="mt-12 p-6 bg-[#F4F3FB] rounded-2xl">
           <h2 className="font-bold text-gray-900 text-lg mb-2">Ready to explore?</h2>
