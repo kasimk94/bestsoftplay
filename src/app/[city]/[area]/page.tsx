@@ -16,6 +16,8 @@ interface Props {
   searchParams: { page?: string }
 }
 
+const BASE_URL = 'https://bestsoftplay.co.uk'
+
 async function getCityAndArea(citySlug: string, areaSlug: string) {
   const city = await prisma.city.findUnique({ where: { slug: citySlug } })
   if (!city) return null
@@ -44,19 +46,29 @@ async function getAreaVenues(citySlug: string, areaSlug: string, page: number) {
   return { venues, total }
 }
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
+export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
   const data = await getCityAndArea(params.city, params.area)
   if (!data) return {}
 
   const { city, area } = data
-  const title = `Best Soft Play in ${area.name}, ${city.name}`
+  const page = Math.max(1, parseInt(searchParams.page ?? '1', 10))
+  const base = `${BASE_URL}/${city.slug}/${area.slug}`
+
+  const title = page > 1
+    ? `Best Soft Play in ${area.name}, ${city.name} — Page ${page}`
+    : `Best Soft Play in ${area.name}, ${city.name}`
   const description = `Find the best soft play venues in ${area.name}, ${city.name}. Compare venues by rating, age group, features, and prices.`
 
   return {
     title,
     description,
     alternates: {
-      canonical: `https://bestsoftplay.co.uk/${city.slug}/${area.slug}`,
+      // Each paginated page canonicalizes to itself (including ?page=N), not
+      // back to page 1 — Google deprecated rel=next/prev in 2021, and since
+      // each page lists genuinely different venues, collapsing them all to
+      // page 1's canonical would tell Google to drop that content from the
+      // index entirely rather than treat each page as its own listing.
+      canonical: page > 1 ? `${base}?page=${page}` : base,
     },
   }
 }

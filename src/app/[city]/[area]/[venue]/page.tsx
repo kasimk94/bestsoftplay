@@ -177,17 +177,34 @@ function generateFAQs(venue: {
   ]
 }
 
+// A handful of venues exist as two DB rows for the same real business (same
+// Google Place ID, created at different times by the sync script under
+// slightly different names) — both pages stay live, but the thinner/earlier
+// entry canonicalizes to the fuller, better-rated one so Google treats them
+// as one page rather than flagging duplicate content with no clear preference.
+// Confirmed via matching googlePlaceId; NOT used for merely similarly-named venues.
+const DUPLICATE_VENUE_CANONICAL_PATH: Record<string, string> = {
+  'treasure-island': '/birmingham/city-centre/treasure-island-play-ltd',
+  'berzerk-active-play': '/birmingham/city-centre/berzerk-active-play-birmingham',
+  'gambado': '/london/south-london/gambado-chelsea-indoor-softplay',
+  'kidspace-croydon': '/london/south-london/kidspace-adventure-park',
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const venue = await getVenue(params.venue, params.city, params.area)
   if (!venue) return {}
+
+  const duplicateOf = DUPLICATE_VENUE_CANONICAL_PATH[venue.slug]
+  const canonical = duplicateOf
+    ? `https://bestsoftplay.co.uk${duplicateOf}`
+    : `https://bestsoftplay.co.uk/${venue.city.slug}/${venue.area.slug}/${venue.slug}`
+
   return {
     title: `${venue.name} – Soft Play in ${venue.area.name}, ${venue.city.name}`,
     description:
       venue.description ??
       `${venue.name} is a soft play venue in ${venue.area.name}, ${venue.city.name}. See ratings, photos, opening times and how to get there.`,
-    alternates: {
-      canonical: `https://bestsoftplay.co.uk/${venue.city.slug}/${venue.area.slug}/${venue.slug}`,
-    },
+    alternates: { canonical },
   }
 }
 
