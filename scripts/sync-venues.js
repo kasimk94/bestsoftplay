@@ -333,6 +333,49 @@ async function getGooglePlaceById(placeId) {
   }
 }
 
+// ─── Parking (New Places API — legacy Details endpoint has no parking field) ─
+
+const PARKING_TRUE_KEYS = [
+  'freeParkingLot', 'paidParkingLot', 'freeStreetParking', 'paidStreetParking',
+  'valetParking', 'freeGarageParking', 'paidGarageParking',
+]
+
+/**
+ * Returns 'Yes' | 'No' | 'Unknown'. Google's New Places API omits the whole
+ * parkingOptions object when it has no data — that's the only reliable
+ * "we don't know" signal, so we never guess from other fields.
+ */
+async function getParkingStatus(placeId) {
+  return new Promise((resolve) => {
+    const options = {
+      hostname: 'places.googleapis.com',
+      path: `/v1/places/${placeId}`,
+      method: 'GET',
+      headers: {
+        'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY,
+        'X-Goog-FieldMask': 'id,parkingOptions',
+      },
+    }
+    const req = https.request(options, (res) => {
+      let data = ''
+      res.on('data', (chunk) => (data += chunk))
+      res.on('end', () => {
+        try {
+          const json = JSON.parse(data)
+          if (!json.parkingOptions) return resolve('Unknown')
+          const anyTrue = PARKING_TRUE_KEYS.some((k) => json.parkingOptions[k] === true)
+          resolve(anyTrue ? 'Yes' : 'No')
+        } catch {
+          resolve('Unknown')
+        }
+      })
+    })
+    req.on('error', () => resolve('Unknown'))
+    req.setTimeout(10000, () => { req.destroy(); resolve('Unknown') })
+    req.end()
+  })
+}
+
 // ─── Photo selection ───────────────────────────────────────────────────────
 
 function extractAttribName(html) {
@@ -493,6 +536,12 @@ async function processVenue({ name, lat, lng, place, osmTags, cityRecord }) {
     return false
   }
 
+  let parking = 'Unknown'
+  if (googlePlaceId) {
+    await sleep(100)
+    parking = await getParkingStatus(googlePlaceId)
+  }
+
   // Re-use existing description — only generate if the venue is new or has none
   const existing = await prisma.venue.findUnique({ where: { slug }, select: { description: true } })
   let description = existing?.description ?? null
@@ -529,6 +578,7 @@ async function processVenue({ name, lat, lng, place, osmTags, cityRecord }) {
     photoUrl3,
     description,
     features,
+    parking,
     openingHours: openingHours ? { weekdays: openingHours } : undefined,
     areaId: area.id,
     cityId: cityRecord.id,

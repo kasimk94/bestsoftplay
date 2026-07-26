@@ -3,7 +3,7 @@ interface KeyInfoCardsProps {
   ageMin: number | null
   ageMax: number | null
   hasCafe: boolean
-  parkingLabel: 'Free' | 'Paid' | 'Limited' | null
+  parking: 'Yes' | 'No' | 'Unknown'
   hasPartyRooms: boolean
   areaName: string
 }
@@ -39,7 +39,7 @@ function Card({ emoji, label, value, bg, fg }: CardSpec) {
 }
 
 export default function KeyInfoCards({
-  googleRating, ageMin, ageMax, hasCafe, parkingLabel, hasPartyRooms, areaName,
+  googleRating, ageMin, ageMax, hasCafe, parking, hasPartyRooms, areaName,
 }: KeyInfoCardsProps) {
   const ageLabel = getAgeLabel(ageMin, ageMax) ?? 'All ages'
 
@@ -50,9 +50,7 @@ export default function KeyInfoCards({
   }
   cards.push({ emoji: '👶', label: 'Age range', value: ageLabel, bg: '#F4F3FB', fg: '#5F56C8' })
   cards.push({ emoji: '☕', label: 'Café', value: hasCafe ? 'Yes' : 'No', bg: '#FBEAE0', fg: '#9A4A24' })
-  if (parkingLabel) {
-    cards.push({ emoji: '🅿️', label: 'Parking', value: parkingLabel, bg: '#E0F2FE', fg: '#0369A1' })
-  }
+  cards.push({ emoji: '🅿️', label: 'Parking', value: parking, bg: '#E0F2FE', fg: '#0369A1' })
   if (hasPartyRooms) {
     cards.push({ emoji: '🎉', label: 'Party rooms', value: 'Yes', bg: '#FCE7F3', fg: '#9D174D' })
   }

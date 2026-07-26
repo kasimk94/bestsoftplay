@@ -34,6 +34,7 @@ model Venue {
   ageMin            Int?
   ageMax            Int?
   priceRange        String?
+  parking           String   @default("Unknown")
   features          String[]
   openingHours      Json?
   isVerified        Boolean  @default(false)

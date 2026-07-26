@@ -148,6 +148,41 @@ function extractAttribName(html) {
   return m ? m[1].trim() : ''
 }
 
+const PARKING_TRUE_KEYS = [
+  'freeParkingLot', 'paidParkingLot', 'freeStreetParking', 'paidStreetParking',
+  'valetParking', 'freeGarageParking', 'paidGarageParking',
+]
+
+/** Returns 'Yes' | 'No' | 'Unknown' via the New Places API (the legacy Details
+ * endpoint used elsewhere in this file has no parking field). Google omits
+ * parkingOptions entirely when it has no data — that's the only "unknown" signal. */
+async function getParkingStatus(placeId) {
+  return new Promise((resolve) => {
+    const options = {
+      hostname: 'places.googleapis.com',
+      path: `/v1/places/${placeId}`,
+      method: 'GET',
+      headers: { 'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY, 'X-Goog-FieldMask': 'id,parkingOptions' },
+    }
+    const req = https.request(options, (res) => {
+      let data = ''
+      res.on('data', (chunk) => (data += chunk))
+      res.on('end', () => {
+        try {
+          const json = JSON.parse(data)
+          if (!json.parkingOptions) return resolve('Unknown')
+          resolve(PARKING_TRUE_KEYS.some((k) => json.parkingOptions[k] === true) ? 'Yes' : 'No')
+        } catch {
+          resolve('Unknown')
+        }
+      })
+    })
+    req.on('error', () => resolve('Unknown'))
+    req.setTimeout(10000, () => { req.destroy(); resolve('Unknown') })
+    req.end()
+  })
+}
+
 function resolvePhotoUrl(photoReference, maxWidth = 800) {
   return new Promise((resolve) => {
     const url =
@@ -394,6 +429,8 @@ async function addMissingVenues() {
 
     await sleep(200)
     const description = await generateDescription(details.name, details.formatted_address)
+    const placeIdForData = details.place_id ?? candidate.place_id
+    const parking = placeIdForData ? await getParkingStatus(placeIdForData) : 'Unknown'
 
     const data = {
       name: details.name,
@@ -404,7 +441,7 @@ async function addMissingVenues() {
       postcode: '',
       phone: details.formatted_phone_number ?? null,
       website: details.website ?? null,
-      googlePlaceId: details.place_id ?? candidate.place_id,
+      googlePlaceId: placeIdForData,
       googleRating: details.rating ?? null,
       googleReviewCount: details.user_ratings_total ?? null,
       photoReference,
@@ -413,6 +450,7 @@ async function addMissingVenues() {
       photoUrl3,
       description,
       features: [],
+      parking,
       openingHours: details.opening_hours?.weekday_text ? { weekdays: details.opening_hours.weekday_text } : undefined,
       qualityScore: classification.confidence,
       qualityReason: classification.reason,
