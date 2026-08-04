@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import { prisma } from '@/lib/prisma'
+import CleanupBanner from '@/components/CleanupBanner'
+import { SHOW_CLEANUP_BANNER } from '@/lib/site-config'
 
 export async function generateMetadata(): Promise<Metadata> {
   const total = await prisma.venue.count().catch(() => 0)
@@ -36,7 +38,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en-GB">
-      <body>{children}</body>
+      <body>
+        {SHOW_CLEANUP_BANNER && <CleanupBanner />}
+        {children}
+      </body>
     </html>
   )
 }
