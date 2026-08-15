@@ -30,6 +30,7 @@ model Venue {
   photoUrl          String?
   photoUrl2         String?
   photoUrl3         String?
+  localPhotos       String[] @default([])
   description       String?
   ageMin            Int?
   ageMax            Int?

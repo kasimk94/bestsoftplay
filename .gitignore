@@ -27,6 +27,13 @@ yarn-error.log*
 .env*.local
 .env
 
+# python
+/.venv
+
+# venue photos downloaded by scripts/fetch_venue_photos.py (large binaries,
+# regenerate via the script rather than committing — see script docstring)
+/public/images/venues
+
 # vercel
 .vercel
 
