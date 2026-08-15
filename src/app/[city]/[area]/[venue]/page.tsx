@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
@@ -400,6 +401,22 @@ export default async function VenuePage({ params }: Props) {
             <span className="text-sm text-gray-500">Typical price: varies</span>
           )}
         </div>
+
+        <Link
+          href={`/${venue.city.slug}`}
+          className="group flex items-center justify-between gap-3 rounded-2xl px-4 py-3 mb-4 border transition-colors hover:brightness-95"
+          style={{ backgroundColor: `${venue.city.colour}14`, borderColor: `${venue.city.colour}33` }}
+        >
+          <span className="text-sm text-gray-700">
+            Looking for more soft play options in <strong className="font-bold">{venue.city.name}</strong>?
+          </span>
+          <span
+            className="flex-shrink-0 text-sm font-bold whitespace-nowrap group-hover:underline"
+            style={{ color: venue.city.colour }}
+          >
+            Browse all venues →
+          </span>
+        </Link>
 
         <p className="flex items-center gap-1.5 text-sm text-gray-500 mb-2">
           <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
