@@ -22,6 +22,7 @@ function buildWhere(filter: Filter): Prisma.VenueWhereInput {
       photoUrl2: null,
       photoUrl3: null,
       photoReference: null,
+      localPhotos: { isEmpty: true },
     }
   }
   if (filter === 'lowconfidence') return { qualityScore: { lt: 70 }, manuallyReviewed: false }
@@ -56,6 +57,7 @@ export default async function VenueReviewPage({
       photoUrl2: true,
       photoUrl3: true,
       photoReference: true,
+      localPhotos: true,
       city: { select: { name: true } },
     },
     // Postgres sorts NULLs last on ASC by default, so unclassified venues fall to the end.

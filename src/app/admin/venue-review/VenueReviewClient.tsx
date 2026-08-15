@@ -15,6 +15,7 @@ export interface ReviewVenue {
   photoUrl2: string | null
   photoUrl3: string | null
   photoReference: string | null
+  localPhotos: string[]
   city: { name: string }
 }
 
@@ -39,8 +40,9 @@ const btnBase: React.CSSProperties = {
   cursor: 'pointer',
 }
 
-function imageSrcFor(v: Pick<ReviewVenue, 'photoUrl' | 'photoUrl2' | 'photoUrl3' | 'photoReference'>) {
+function imageSrcFor(v: Pick<ReviewVenue, 'photoUrl' | 'photoUrl2' | 'photoUrl3' | 'photoReference' | 'localPhotos'>) {
   return (
+    v.localPhotos[0] ??
     v.photoUrl ??
     v.photoUrl2 ??
     v.photoUrl3 ??

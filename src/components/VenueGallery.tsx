@@ -3,20 +3,16 @@
 import { useEffect, useRef, useState } from 'react'
 
 interface VenueGalleryProps {
-  photoRefs: string[]
+  images: string[]
   name: string
   fallbackColor: string
-}
-
-function photoSrc(ref: string) {
-  return `/api/place-photo?ref=${encodeURIComponent(ref)}&w=1200`
 }
 
 const AUTO_ADVANCE_MS = 4000
 const SWIPE_THRESHOLD = 50
 
-export default function VenueGallery({ photoRefs, name, fallbackColor }: VenueGalleryProps) {
-  const [refs, setRefs] = useState(photoRefs)
+export default function VenueGallery({ images, name, fallbackColor }: VenueGalleryProps) {
+  const [refs, setRefs] = useState(images)
   const [index, setIndex] = useState(0)
   const [paused, setPaused] = useState(false)
   const touchStartX = useRef<number | null>(null)
@@ -75,7 +71,7 @@ export default function VenueGallery({ photoRefs, name, fallbackColor }: VenueGa
         // eslint-disable-next-line @next/next/no-img-element
         <img
           key={ref}
-          src={photoSrc(ref)}
+          src={ref}
           alt={`${name} photo ${i + 1}`}
           className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ease-in-out ${
             i === index ? 'opacity-100 z-10' : 'opacity-0 z-0'

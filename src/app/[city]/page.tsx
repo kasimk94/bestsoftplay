@@ -106,7 +106,7 @@ async function getCityData(slug: string) {
       id: true, name: true, slug: true, address: true,
       lat: true, lng: true,
       googleRating: true, googleReviewCount: true,
-      photoUrl: true, photoUrl2: true, photoUrl3: true, photoReference: true,
+      photoUrl: true, photoUrl2: true, photoUrl3: true, photoReference: true, localPhotos: true,
       features: true, isFeatured: true, isNew: true, createdAt: true,
       city: { select: { slug: true } },
       area: { select: { slug: true, name: true } },

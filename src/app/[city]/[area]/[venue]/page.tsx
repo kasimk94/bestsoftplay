@@ -262,8 +262,16 @@ export default async function VenuePage({ params }: Props) {
   const weekdays = (venue.openingHours as { weekdays?: string[] } | null)?.weekdays ?? []
   const priceLabel = priceLevel !== null ? PRICE_LEVEL_LABELS[priceLevel] : venue.priceRange
   const pageUrl = `https://bestsoftplay.co.uk/${venue.city.slug}/${venue.area.slug}/${venue.slug}`
-  const primaryImage = photoRefs[0]
-    ? `https://bestsoftplay.co.uk/api/place-photo?ref=${encodeURIComponent(photoRefs[0])}&w=1200`
+
+  // Locally-hosted photos (curated by scripts/fetch_venue_photos.py) are preferred:
+  // they're already vetted, don't depend on a live Google call, and won't expire.
+  // Venues not yet processed by that script fall back to the live Google refs.
+  const galleryImages =
+    venue.localPhotos.length > 0
+      ? venue.localPhotos
+      : photoRefs.map((ref) => `/api/place-photo?ref=${encodeURIComponent(ref)}&w=1200`)
+  const primaryImage = galleryImages[0]
+    ? `https://bestsoftplay.co.uk${galleryImages[0]}`
     : null
 
   const openingHoursSchema = buildOpeningHoursSchema(weekdays)
@@ -334,7 +342,7 @@ export default async function VenuePage({ params }: Props) {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqLd) }} />
       <Navbar />
 
-      <VenueGallery photoRefs={photoRefs} name={venue.name} fallbackColor={heroColor} />
+      <VenueGallery images={galleryImages} name={venue.name} fallbackColor={heroColor} />
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24 sm:pb-8">
         <Breadcrumb

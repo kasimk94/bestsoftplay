@@ -18,6 +18,7 @@ type Venue = {
   photoUrl2: string | null
   photoUrl3: string | null
   photoReference: string | null
+  localPhotos: string[]
   features: string[]
   isFeatured: boolean
   isNew: boolean
@@ -86,7 +87,7 @@ function VenueCard({ venue, index, distance }: { venue: Venue; index: number; di
     <Link href={href} className="group block bg-white rounded-3xl overflow-hidden shadow-sm border border-gray-100 hover:shadow-xl transition-all duration-300">
       <div className="relative h-[200px] overflow-hidden" style={{ backgroundColor: color }}>
         <VenuePhoto
-          directUrls={[venue.photoUrl, venue.photoUrl2, venue.photoUrl3]}
+          directUrls={[...venue.localPhotos, venue.photoUrl, venue.photoUrl2, venue.photoUrl3]}
           photoReference={venue.photoReference}
           name={venue.name}
           fallbackColor={color}

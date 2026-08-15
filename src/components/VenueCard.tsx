@@ -14,6 +14,7 @@ interface VenueCardProps {
     photoUrl?: string | null
     photoUrl2?: string | null
     photoUrl3?: string | null
+    localPhotos?: string[]
     features: string[]
     isFeatured?: boolean
     isNew?: boolean
@@ -33,7 +34,7 @@ export default function VenueCard({ venue, index = 0 }: VenueCardProps) {
       {/* Photo with gradient overlay */}
       <div className="relative h-[220px] overflow-hidden" style={{ backgroundColor: color }}>
         <VenuePhoto
-          directUrls={[venue.photoUrl, venue.photoUrl2, venue.photoUrl3]}
+          directUrls={[...(venue.localPhotos ?? []), venue.photoUrl, venue.photoUrl2, venue.photoUrl3]}
           photoReference={venue.photoReference}
           name={venue.name}
           fallbackColor={color}
