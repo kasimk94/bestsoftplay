@@ -87,7 +87,7 @@ function VenueCard({ venue, index, distance }: { venue: Venue; index: number; di
     <Link href={href} className="group block bg-white rounded-3xl overflow-hidden shadow-sm border border-gray-100 hover:shadow-xl transition-all duration-300">
       <div className="relative h-[200px] overflow-hidden" style={{ backgroundColor: color }}>
         <VenuePhoto
-          directUrls={[...venue.localPhotos, venue.photoUrl, venue.photoUrl2, venue.photoUrl3]}
+          directUrls={[venue.photoUrl, venue.photoUrl2, venue.photoUrl3, ...venue.localPhotos]}
           photoReference={venue.photoReference}
           name={venue.name}
           fallbackColor={color}

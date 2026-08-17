@@ -16,9 +16,12 @@ export async function GET(request: NextRequest) {
   let photoUrl: string
 
   if (ref.startsWith('places/')) {
-    // New Places API v2 photo resource name (places/{placeId}/photos/{photoId})
+    // New Places API v2 photo resource name (places/{placeId}/photos/{photoId}).
+    // Must NOT encodeURIComponent the whole ref — its "/" separators are real
+    // path segments for Google's API, not literal characters; encoding them
+    // to %2F made every request 404.
     photoUrl =
-      `https://places.googleapis.com/v1/${encodeURIComponent(ref)}/media` +
+      `https://places.googleapis.com/v1/${ref}/media` +
       `?maxHeightPx=${width}&key=${apiKey}&skipHttpRedirect=true`
   } else {
     // Old Places API photo reference — kept for any remaining legacy refs

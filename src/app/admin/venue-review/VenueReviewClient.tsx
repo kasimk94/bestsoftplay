@@ -42,11 +42,12 @@ const btnBase: React.CSSProperties = {
 
 function imageSrcFor(v: Pick<ReviewVenue, 'photoUrl' | 'photoUrl2' | 'photoUrl3' | 'photoReference' | 'localPhotos'>) {
   return (
-    v.localPhotos[0] ??
     v.photoUrl ??
     v.photoUrl2 ??
     v.photoUrl3 ??
-    (v.photoReference ? `/api/place-photo?ref=${encodeURIComponent(v.photoReference)}&w=500` : null)
+    (v.photoReference ? `/api/place-photo?ref=${encodeURIComponent(v.photoReference)}&w=500` : null) ??
+    v.localPhotos[0] ??
+    null
   )
 }
 
