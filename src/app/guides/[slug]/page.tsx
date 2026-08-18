@@ -5,6 +5,7 @@ import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import Breadcrumb from '@/components/Breadcrumb'
 import VenueCard from '@/components/VenueCard'
+import LinkedGuideContent from '@/components/LinkedGuideContent'
 import { prisma } from '@/lib/prisma'
 import { passesQualityFilter } from '@/lib/venueFilters'
 
@@ -22,65 +23,34 @@ async function getGuide(slug: string) {
   }
 }
 
-const TODDLER_KEYWORDS = ['toddler', 'baby', 'babies', 'tots', 'under 2', 'under 5', 'tiny', 'little ones']
-
-async function findCityVenuesByKeywords(citySlug: string, keywords: string[], take: number) {
-  const venues = await prisma.venue.findMany({
-    where: { city: { slug: citySlug }, isExcluded: false, ...passesQualityFilter() },
-    include: { city: true, area: true },
-    orderBy: [{ googleRating: 'desc' }, { googleReviewCount: 'desc' }],
-  })
-  const filtered = venues.filter((v) => {
-    const text = `${v.name} ${v.description ?? ''}`.toLowerCase()
-    return keywords.some((k) => text.includes(k))
-  })
-  return filtered.slice(0, take)
-}
-
-async function findTopAcrossCities(take: number) {
-  const cities = ['london', 'birmingham', 'manchester']
-  const perCity = Math.ceil(take / cities.length)
-  const results = []
-  for (const slug of cities) {
-    const venues = await prisma.venue.findMany({
-      where: { city: { slug }, isExcluded: false, googleRating: { not: null }, ...passesQualityFilter() },
-      include: { city: true, area: true },
-      orderBy: [{ googleRating: 'desc' }, { googleReviewCount: 'desc' }],
-      take: perCity,
-    })
-    results.push(...venues)
-  }
-  return results.slice(0, take)
-}
-
-async function findFreeVsPaidVenues(take: number) {
-  // Lead with a genuinely verified free/community session, then fill with top-rated paid venues.
-  const free = await prisma.venue.findFirst({
-    where: { slug: 'rpca-soft-play' },
-    include: { city: true, area: true },
-  })
-  const paid = await findTopAcrossCities(free ? take - 1 : take)
-  return free ? [free, ...paid.filter((v) => v.id !== free.id)] : paid
+// Explicit per-guide venue lists, in the order each venue is first named in
+// that guide's prose. Kept as fixed slugs (rather than a dynamic keyword/rating
+// query) so the "recommended venues" grid always matches exactly what the body
+// text names — a dynamic query can silently drift from the prose over time,
+// which is exactly how the old free-vs-paid guide ended up recommending a
+// venue (RPCA Soft Play) that its own text no longer mentioned after deletion.
+const GUIDE_VENUE_SLUGS: Record<string, string[]> = {
+  'best-soft-plays-toddlers-london': ['kinder-island-soft-play', 'bonbon-kids-cafe', 'play-central', 'the-barnyard-soft-play', 'buzy-bees-playbarn', 'salaspark-ltd', 'ballooon-soft-play-cafe', 'rainbow-cafe'],
+  'best-soft-play-toddlers-birmingham': ['little-tinkers-birmingham', 'playwrights-cafe-coventry-canal-basin', 'the-soft-play-caf', 'rock-up-birmingham', 'flamingoo-soft-play', 'mini-monkeys-play-learn-centre', 'little-lobsters-play-centre', 'jungle-boogie-walsall'],
+  'best-soft-play-toddlers-manchester': ['baby-bears-play-cafe', 'playcafe', 'bumble-bee', 'busy-little-monsters', 'the-rainforest-retreat-play-cafe', 'the-place-to-play', 'the-treehouse-salford', 'small-town-play-caf'],
+  'rainy-day-indoor-soft-play-guide': ['rendezvous-softplay', 'under-the-canopy-play-cafe', 'kinder-island-soft-play', 'the-snug-stay-and-play-cafe', 'natural-play-and-cafe', 'little-tinkers-birmingham', 'the-place-to-play', 'baby-bears-play-cafe'],
+  'soft-play-birthday-parties-guide': ['myplace-soft-play-parties', 'fun-junction-play-party-centre', 'zig-zags-play-and-party', 'junglebugs-indoor-play-centre-and-party-zone', 'discobowl-warrington', 'treetops-play-and-party-cafe'],
+  'free-vs-paid-soft-play': ['rendezvous-softplay', 'under-the-canopy-play-cafe', 'the-snug-stay-and-play-cafe', 'natural-play-and-cafe', 'the-place-to-play', 'baby-bears-play-cafe'],
+  'best-soft-plays-south-london': ['rendezvous-softplay', 'clip-n-climb-croydon', 'salaspark-ltd', 'another-planet', 'little-seedlings-soft-play', 'bertie-and-boo-adventure-island', 'globetrotters-soft-play-centre', 'fratello-caf-play'],
+  'best-soft-plays-birmingham': ['little-tinkers-birmingham', 'playwrights-cafe-coventry-canal-basin', 'flamingoo-soft-play', 'the-soft-play-caf', 'rock-up-birmingham', 'natural-play-and-cafe', 'the-snug-stay-and-play-cafe', 'jungle-boogie-walsall', 'mini-monkeys-play-learn-centre', 'little-lobsters-play-centre'],
+  'best-soft-plays-manchester': ['baby-bears-play-cafe', 'playcafe', 'bumble-bee', 'busy-little-monsters', 'the-little-luxe-soft-play-centre-ltd', 'the-rainforest-retreat-play-cafe', 'the-place-to-play', 'the-treehouse-salford'],
 }
 
 async function getGuideVenues(slug: string) {
+  const slugs = GUIDE_VENUE_SLUGS[slug]
+  if (!slugs) return []
   try {
-    switch (slug) {
-      case 'best-soft-plays-toddlers-london':
-        return await findCityVenuesByKeywords('london', TODDLER_KEYWORDS, 8)
-      case 'best-soft-play-toddlers-birmingham':
-        return await findCityVenuesByKeywords('birmingham', TODDLER_KEYWORDS, 8)
-      case 'best-soft-play-toddlers-manchester':
-        return await findCityVenuesByKeywords('manchester', TODDLER_KEYWORDS, 8)
-      case 'rainy-day-indoor-soft-play-guide':
-        return await findTopAcrossCities(8)
-      case 'soft-play-birthday-parties-guide':
-        return await findTopAcrossCities(6)
-      case 'free-vs-paid-soft-play':
-        return await findFreeVsPaidVenues(6)
-      default:
-        return []
-    }
+    const venues = await prisma.venue.findMany({
+      where: { slug: { in: slugs }, isExcluded: false, ...passesQualityFilter() },
+      include: { city: true, area: true },
+    })
+    const order = new Map(slugs.map((s, i) => [s, i]))
+    return venues.sort((a, b) => (order.get(a.slug) ?? 0) - (order.get(b.slug) ?? 0))
   } catch {
     return []
   }
@@ -169,11 +139,10 @@ export default async function GuidePage({ params }: Props) {
 
       <article className="max-w-3xl mx-auto px-4 sm:px-6 py-10">
         <div className="prose prose-gray prose-lg max-w-none">
-          {guide.content.split('\n\n').map((para, i) => (
-            <p key={i} className="text-gray-700 leading-relaxed mb-5">
-              {para}
-            </p>
-          ))}
+          <LinkedGuideContent
+            content={guide.content}
+            venues={venues.map((v) => ({ name: v.name, href: `/${v.city.slug}/${v.area.slug}/${v.slug}` }))}
+          />
         </div>
 
         {venues.length > 0 && (

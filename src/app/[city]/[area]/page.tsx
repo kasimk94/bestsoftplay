@@ -4,8 +4,10 @@ import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import VenueCard from '@/components/VenueCard'
 import Breadcrumb from '@/components/Breadcrumb'
+import RelatedGuides from '@/components/RelatedGuides'
 import { prisma } from '@/lib/prisma'
 import { excludeNonSoftPlay } from '@/lib/venueFilters'
+import { getCityGuides } from '@/lib/guides'
 
 export const dynamic = 'force-dynamic'
 
@@ -141,6 +143,7 @@ export default async function AreaPage({ params, searchParams }: Props) {
   const { venues, total } = await getAreaVenues(params.city, params.area, page)
   const totalPages = Math.ceil(total / PAGE_SIZE)
   const base = `/${city.slug}/${area.slug}`
+  const cityGuides = await getCityGuides(city.slug)
 
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -204,6 +207,14 @@ export default async function AreaPage({ params, searchParams }: Props) {
           </div>
         )}
       </section>
+
+      {cityGuides.length > 0 && (
+        <section className="py-14 px-4" style={{ background: '#F3F1FF' }}>
+          <div className="max-w-7xl mx-auto">
+            <RelatedGuides guides={cityGuides} heading={`Guides for ${city.name}`} />
+          </div>
+        </section>
+      )}
 
       <Footer />
     </>

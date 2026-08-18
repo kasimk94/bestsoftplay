@@ -10,6 +10,7 @@ import VenueAbout from '@/components/VenueAbout'
 import OpeningHoursTable from '@/components/OpeningHoursTable'
 import VenueMap from '@/components/VenueMap'
 import NearbyVenues from '@/components/NearbyVenues'
+import RelatedGuides from '@/components/RelatedGuides'
 import ReviewsSection, { type VenueReview } from '@/components/ReviewsSection'
 import FAQSection from '@/components/FAQSection'
 import StickyMobileCTA from '@/components/StickyMobileCTA'
@@ -118,6 +119,54 @@ async function fetchPlaceDetails(googlePlaceId: string | null, mainRef: string |
 }
 
 const CAFE_KEYWORDS_RE = /(caf[eé]|coffee|\bsnacks?\b|\bkitchen\b|\bfood\b)/i
+const TODDLER_SIGNAL_RE = /toddler|\bbaby\b|babies|\btots\b|under\s*2|under\s*5|\btiny\b|little ones/i
+const PARTY_SIGNAL_RE = /\bparty\b|\bparties\b|birthday/i
+
+const TODDLER_GUIDE_BY_CITY: Record<string, string> = {
+  london: 'best-soft-plays-toddlers-london',
+  birmingham: 'best-soft-play-toddlers-birmingham',
+  manchester: 'best-soft-play-toddlers-manchester',
+}
+const CITY_GUIDE_BY_CITY: Record<string, string> = {
+  birmingham: 'best-soft-plays-birmingham',
+  manchester: 'best-soft-plays-manchester',
+}
+
+// Picks which of the 9 guides are worth surfacing on this specific venue's
+// page: theme-matched guides (toddler/party) first, then a city or area guide,
+// then rainy-day as a baseline pick since it's genuinely relevant to every
+// indoor venue. Capped at 3 so the section stays a quick scan, not a list of
+// every guide on the site.
+function getRelevantGuideSlugs(opts: {
+  citySlug: string
+  areaSlug: string
+  isToddlerFriendly: boolean
+  isPartyFriendly: boolean
+}): string[] {
+  const slugs: string[] = []
+
+  if (opts.isToddlerFriendly && TODDLER_GUIDE_BY_CITY[opts.citySlug]) {
+    slugs.push(TODDLER_GUIDE_BY_CITY[opts.citySlug])
+  }
+  if (opts.isPartyFriendly) {
+    slugs.push('soft-play-birthday-parties-guide')
+  }
+  if (opts.citySlug === 'london' && opts.areaSlug === 'south-london') {
+    slugs.push('best-soft-plays-south-london')
+  } else if (CITY_GUIDE_BY_CITY[opts.citySlug]) {
+    slugs.push(CITY_GUIDE_BY_CITY[opts.citySlug])
+  }
+  slugs.push('rainy-day-indoor-soft-play-guide')
+
+  return Array.from(new Set(slugs)).slice(0, 3)
+}
+
+async function getGuidesBySlugsInOrder(slugs: string[]) {
+  if (slugs.length === 0) return []
+  const guides = await prisma.guide.findMany({ where: { slug: { in: slugs } } })
+  const order = new Map(slugs.map((s, i) => [s, i]))
+  return guides.sort((a, b) => (order.get(a.slug) ?? 0) - (order.get(b.slug) ?? 0))
+}
 
 function generateFAQs(venue: {
   name: string
@@ -259,6 +308,16 @@ export default async function VenuePage({ params }: Props) {
   const hasCafe = CAFE_KEYWORDS_RE.test(cafeSignal)
   const parking = (venue.parking as 'Yes' | 'No' | 'Unknown') ?? 'Unknown'
   const hasPartyRooms = venue.features.some((f) => /party/i.test(f))
+  const isToddlerFriendly = TODDLER_SIGNAL_RE.test(cafeSignal)
+  const isPartyFriendly = hasPartyRooms || PARTY_SIGNAL_RE.test(cafeSignal)
+  const relevantGuides = await getGuidesBySlugsInOrder(
+    getRelevantGuideSlugs({
+      citySlug: venue.city.slug,
+      areaSlug: venue.area.slug,
+      isToddlerFriendly,
+      isPartyFriendly,
+    })
+  )
   const faqs = generateFAQs(venue, hasCafe, parking)
   const weekdays = (venue.openingHours as { weekdays?: string[] } | null)?.weekdays ?? []
   const priceLabel = priceLevel !== null ? PRICE_LEVEL_LABELS[priceLevel] : venue.priceRange
@@ -489,6 +548,8 @@ export default async function VenuePage({ params }: Props) {
         </div>
 
         <NearbyVenues venues={nearby} />
+
+        <RelatedGuides guides={relevantGuides} />
 
         <FAQSection faqs={faqs} />
       </div>

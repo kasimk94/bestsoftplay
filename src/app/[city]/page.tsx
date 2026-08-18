@@ -6,6 +6,8 @@ import CityHeroLocation from '@/components/CityHeroLocation'
 import CityPageInteractive from '@/components/CityPageInteractive'
 import CityMap from '@/components/CityMap'
 import CityFAQ from '@/components/CityFAQ'
+import RelatedGuides from '@/components/RelatedGuides'
+import { getCityGuides } from '@/lib/guides'
 import { CityLocationProvider } from '@/components/CityLocationContext'
 import { prisma } from '@/lib/prisma'
 import { excludeNonSoftPlay } from '@/lib/venueFilters'
@@ -136,6 +138,7 @@ export default async function CityPage({ params, searchParams }: Props) {
   const data = await getCityData(params.city)
   if (!data) notFound()
   const { city, venues } = data
+  const cityGuides = await getCityGuides(city.slug)
 
   // Pre-trigger inline postcode search when arriving via /{city}?postcode=...
   const postcodeParam = searchParams.postcode?.trim().toUpperCase()
@@ -254,6 +257,15 @@ export default async function CityPage({ params, searchParams }: Props) {
       </section>
 
       </CityLocationProvider>
+
+      {/* ── 7b. RELATED GUIDES ───────────────────────────────────────────────── */}
+      {cityGuides.length > 0 && (
+        <section className="py-14 px-4" style={{ background: '#F3F1FF' }}>
+          <div className="max-w-7xl mx-auto">
+            <RelatedGuides guides={cityGuides} heading={`Guides for ${city.name}`} />
+          </div>
+        </section>
+      )}
 
       {/* ── 8. FAQ ───────────────────────────────────────────────────────────── */}
       <CityFAQ cityName={city.name} faqs={faqData} />
